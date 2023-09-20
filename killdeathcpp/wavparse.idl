@@ -1,0 +1,9 @@
+namespace killdeathcpp
+{
+    [default_interface]
+    runtimeclass wavparse : Windows.UI.Xaml.Controls.Page
+    {
+        wavparse();
+        Int32 MyProperty;
+    }
+}
