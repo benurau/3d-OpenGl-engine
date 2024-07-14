@@ -46,14 +46,22 @@ int main(int argc, char* argv[]){
     GLuint monsterTexture = renderer.create2DBitMapTexture("..\\assets\\monster1.bmp");
     GLuint backgroundTexture = renderer.create2DBitMapTexture("..\\assets\\background.bmp");
 
+
+    //while (!glfwWindowShouldClose(window)) {
+    //    renderer.clear();
+    //    renderer.drawLine(0.1, 0.5, 0.2, 0.9);
+    //    renderer.drawBackgroundTexture(backgroundTexture);
+    //    //renderer.draw2DBitMap(monsterTexture);
+    //    drawSword(renderer, mousePosX, mousePosY);
+    //    renderer.swapBuffers();
+    //    glfwPollEvents(); 
+    //}
+    renderer.loadAllShaders();
     while (!glfwWindowShouldClose(window)) {
-        renderer.clear();
-        renderer.drawLine(0.1, 0.5, 0.2, 0.9);
-        renderer.drawBackgroundTexture(backgroundTexture);
-        //renderer.draw2DBitMap(monsterTexture);
-        drawSword(renderer, mousePosX, mousePosY);
-        renderer.swapBuffers();
-        glfwPollEvents(); 
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        renderer.drawTriange(renderer.meshes["triangle"]);
+        glfwPollEvents();
+        glfwSwapBuffers(window);
     }
 
     sEngine.audioCleanup(huh, aDevice);

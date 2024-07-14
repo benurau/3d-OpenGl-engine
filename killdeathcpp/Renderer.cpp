@@ -2,41 +2,45 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <glm/vec3.hpp>
+#include <fstream>
+#include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "misc.h"
 
+
 float convertXtoFloat(double x) {
-    // Perform the conversion
     float result = (2.0f * x) / C_RES_WIDTH - 1.0f;
-
-    // Debug information
-    std::cout << "convertXtoFloat called with x = " << x << std::endl;
-    std::cout << "C_RES_WIDTH = " << C_RES_WIDTH << std::endl;
-    std::cout << "Result = " << result << std::endl;
-
-    // Check if the result is out of bounds
-    if (result < -1.0f || result > 1.0f) {
-        std::cout << "Warning: Result out of bounds: " << result << std::endl;
-    }
     return result;
 }
 
 float convertYtoFloat(double y) {
-    // Perform the conversion
     float result = 1.0f - (2.0f * y) / C_RES_HEIGHT;
-
-    // Debug information
-    std::cout << "convertYtoFloat called with y = " << y << std::endl;
-    std::cout << "C_RES_HEIGHT = " << C_RES_HEIGHT << std::endl;
-    std::cout << "Result = " << result << std::endl;
-
-    // Check if the result is out of bounds
-    if (result < -1.0f || result > 1.0f) {
-        std::cout << "Warning: Result out of bounds: " << result << std::endl;
-    }
     return result;
 }
+
+void _print_shader_info_log(GLuint shader_index) {
+    int max_length = 2048;
+    int actual_length = 0;
+    char shader_log[2048];
+    glGetShaderInfoLog(shader_index, max_length, &actual_length, shader_log);
+    printf("shader info log for GL index %u:\n%s\n", shader_index, shader_log);
+}
+
+const char* readShaderFile(const std::string& filePath) {
+    std::ifstream t(filePath);
+    if (!t.is_open()) {
+        std::cerr << "Failed to open shader file: " << filePath << std::endl;
+        return nullptr;
+    }
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    t.close();
+    return buffer.str().c_str();
+}
+
+
 
 Renderer::Renderer(GLFWwindow* window) : window(window){}
 void Renderer::clear() {
@@ -67,6 +71,7 @@ void Renderer::drawLine(float x1, float y1, float x2, float y2) {
     glVertex2f(x2, y2);
     glEnd();
 }
+
 
 void Renderer::drawFixedLine(float x1, float y1, float x2, float y2, float length) {
     float dirX = x2 - x1;
@@ -116,13 +121,101 @@ GLuint Renderer::create2DBitMapTexture(const char* filepath) {
     return textureID;
 }
 
+GLuint Renderer::generateVBO() {
+    GLuint vbo = 0;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    return vbo;
+}
+
+GLuint Renderer::generateVAO() {
+    GLuint vao = 0;
+    glGenVertexArrays(1, &vao);
+    return vao;
+}
+
+void Renderer::bindVao(GLuint vbo, GLuint vao, int vertexArrays, int vecSize) {
+    glBindVertexArray(vao);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glVertexAttribPointer(vertexArrays, vecSize, GL_FLOAT, GL_FALSE, 0, NULL);
+}
+
+
+GLuint Renderer::loadVertexShader(const char* filePath) {
+    const char* vertex_shader = readShaderFile(filePath);
+    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vs, 1, &vertex_shader, NULL);
+    glCompileShader(vs);
+    int params = -1;
+    glGetShaderiv(vs, GL_COMPILE_STATUS, &params);
+    if (GL_TRUE != params) {
+        fprintf(stderr, "ERROR: GL shader index %i did not compile\n", vs);
+        _print_shader_info_log(vs);
+        return false; 
+    }
+    return vs;
+}
+
+GLuint Renderer::loadFragmentShader(const char* filePath) {
+    const char* fragment_shader = readShaderFile(filePath);
+    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fs, 1, &fragment_shader, NULL);
+    glCompileShader(fs);
+    int params = -1;
+    glGetShaderiv(fs, GL_COMPILE_STATUS, &params);
+    if (GL_TRUE != params) {
+        fprintf(stderr, "ERROR: GL shader index %i did not compile\n", fs);
+        _print_shader_info_log(fs);
+        return false;
+    }
+    return fs;
+}
+
+void Renderer::loadAllShaders() {
+    Mesh mesh = {0};
+    mesh.vs = loadVertexShader("..\\assets\\triangle_vs.txt");
+    mesh.fs = loadFragmentShader("..\\assets\\rainbow_fs.txt");
+    mesh.vao = generateVAO();
+    mesh.name = "triangle";
+    meshes[mesh.name] = mesh;
+}
+
+void Renderer::drawTriange(Mesh mesh) {
+    float points[] = {
+       0.0f,  0.5f,  0.0f,
+       0.5f, -0.5f,  0.0f,
+      -0.5f, -0.5f,  0.0f
+    };
+    float colours[] = {
+      1.0f, 0.0f,  0.0f,
+      0.0f, 1.0f,  0.0f,
+      0.0f, 0.0f,  1.0f
+    };
+    GLuint vbo = generateVBO();
+    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW);
+    GLuint colours_vbo = generateVBO();
+    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), colours, GL_STATIC_DRAW);
+    bindVao(vbo ,mesh.vao, 0, 3);
+    bindVao(colours_vbo, mesh.vao, 1, 3);
+
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, mesh.fs);
+    glAttachShader(shaderProgram, mesh.vs);
+    glLinkProgram(shaderProgram);
+    glUseProgram(shaderProgram);
+    glBindVertexArray(mesh.vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    
+
+}
+
 void Renderer::drawBackgroundTexture(GLuint textureID) {
     glBindTexture(GL_TEXTURE_2D, textureID);
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBegin(GL_QUADS);
-    glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f);
     glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f, -1.0f);
     glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f, -1.0f);
     glTexCoord2f(1.0f, 0.0f); glVertex2f(1.0f, 1.0f);
