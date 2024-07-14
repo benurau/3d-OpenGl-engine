@@ -29,8 +29,7 @@ DWORD LoadWavFromFile(const char* fileName, GAMESOUND* gameSound){
 
     fread(&gameSound->header, sizeof(gameSound->header), 1, wavFile);
 
-
-    printf("WAV File Header read:\n");
+    /*printf("WAV File Header read:\n");
     printf("File Type: %s\n", gameSound->header.chunkID);
     printf("File Size: %ld\n", gameSound->header.chunkSize);
     printf("WAV Marker: %s\n", gameSound->header.format);
@@ -41,9 +40,7 @@ DWORD LoadWavFromFile(const char* fileName, GAMESOUND* gameSound){
     printf("Sample Rate: %ld\n", gameSound->header.sampleRate);
     printf("Sample Rate * Bits/Sample * Channels / 8: %ld\n", gameSound->header.byteRate);
     printf("Bits per Sample * Channels / 8.1: %hd\n", gameSound->header.blockAlign);
-    printf("Bits per Sample: %hd\n", gameSound->header.bitsPerSample);
-
-    
+    printf("Bits per Sample: %hd\n", gameSound->header.bitsPerSample);*/
 
     chunk_t chunk;
     printf("id\t" "size\n");

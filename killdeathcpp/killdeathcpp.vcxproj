@@ -20,21 +20,24 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="32ppBitMap.cpp" />
-    <ClCompile Include="BBuffer.cpp" />
-    <ClCompile Include="game.cpp" />
-    <ClCompile Include="Monster.cpp" />
+    <ClCompile Include="..\glad.c" />
+    <ClCompile Include="collision.cpp" />
+    <ClCompile Include="entity.cpp" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="soundEngine.cpp" />
+    <ClCompile Include="sword.cpp" />
     <ClCompile Include="Wav.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="32ppBitMap.h" />
-    <ClInclude Include="BBuffer.h" />
-    <ClInclude Include="game.h" />
+    <ClInclude Include="..\..\..\..\Downloads\stb_image.h" />
+    <ClInclude Include="collision.h" />
+    <ClInclude Include="entity.h" />
+    <ClInclude Include="Renderer.h" />
     <ClInclude Include="misc.h" />
-    <ClInclude Include="Monster.h" />
+    <ClInclude Include="soundEngine.h" />
+    <ClInclude Include="sword.h" />
     <ClInclude Include="Wav.h" />
-    <ClInclude Include="window.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -91,6 +94,14 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>C:\Users\banu\source\repos\killdeathcpp\libraries\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\banu\source\repos\killdeathcpp\libraries\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>C:\Users\banu\source\repos\killdeathcpp\libraries\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\banu\source\repos\killdeathcpp\libraries\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -129,6 +140,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -145,6 +157,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
