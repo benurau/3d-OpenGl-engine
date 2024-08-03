@@ -2,43 +2,57 @@
 #include "misc.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "shader.h"
 #include <unordered_map>
+#include <glm/glm.hpp>
 #define C_BPP         32
 #define C_AREA_MEMORY_SIZE (C_RES_WIDTH * C_RES_HEIGHT * (C_BPP/8))
 #define C_AREA_PIXELS 512*384
 #define C_RES_MIDDLE (C_RES_WIDTH / 2)
 
 
-float convertXtoFloat(double x);
-float convertYtoFloat(double y);
+GLenum glCheckError_(const char* file, int line);
 
-typedef struct Mesh {
+struct Mesh {
     const char* name;
-    GLuint vao, fs, vs;
+    GLuint vao;
 };
+
+struct Texture {
+    const char* type;
+    int id;
+};
+
+GLuint generateVBO(float points[], int size);
+GLuint generateVAO();
+GLuint generateIBO(int const Indices[], int size);
+void bindToVao(GLuint vbo, GLuint vao, int vertexArray, int vecSize, int stride, int offset);
 
 class Renderer {
 public:
-    std::unordered_map <const char*, Mesh> meshes;
-
+    std::unordered_map <const char*, Shader> shaders;
+    std::unordered_map <const char*, GLuint> vaos;
     Renderer(GLFWwindow* window);
-    GLuint generateVBO();
-    GLuint generateVAO();
-    void bindVao(GLuint vbo, GLuint vao, int vertexArrays, int vecSize);
-    GLuint loadVertexShader(const char* filePath);
-    GLuint loadFragmentShader(const char* filePath);
     void loadAllShaders();
-    void drawTriange(Mesh mesh);
+
+    void drawLine(GLuint vao, Shader shader, GLfloat points[], int size);
+    void drawTriange(GLuint vao, Shader shader, GLfloat points[], int size);
+    void drawRectangle(GLuint vao, Shader shader, GLfloat points[], int size);
+    void draw2DBitMap(GLuint vao, Shader shader, GLfloat points[], int size, GLuint textureID);
+
+    void draw3DSquare(Shader shader);
+    void drawCube(GLuint vao, Shader shader, GLfloat points[], int size, GLuint textureID);
+
+    void changeSize(Shader shader, glm::vec3 vec);
+    void movePos(Shader shader, glm::vec3 position);
+    void make3DSquare(Shader shader);
 
     void clear();
     void swapBuffers();
     GLuint create2DBitMapTexture(const char* filepath);
-    void drawBackgroundTexture(GLuint textureID);
-    void drawLine(float x1, float y1, float x2, float y2);
-    void drawFixedLine(float x1, float y1, float x2, float y2, float length);
-    void draw2DBitMap(GLuint textureID, float x1, float x2, float x3, float x4, float y1, float y2, float y3, float y4);
+    void drawFixedLine(GLuint vao, Shader shader, GLfloat points[], int size, float length);
+    
 
 private:
     GLFWwindow* window;
-    GLuint shaderProgram;
 };

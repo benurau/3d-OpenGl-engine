@@ -2,45 +2,35 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
-#include <glm/vec3.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <fstream>
 #include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "misc.h"
 
-
-float convertXtoFloat(double x) {
-    float result = (2.0f * x) / C_RES_WIDTH - 1.0f;
-    return result;
-}
-
-float convertYtoFloat(double y) {
-    float result = 1.0f - (2.0f * y) / C_RES_HEIGHT;
-    return result;
-}
-
-void _print_shader_info_log(GLuint shader_index) {
-    int max_length = 2048;
-    int actual_length = 0;
-    char shader_log[2048];
-    glGetShaderInfoLog(shader_index, max_length, &actual_length, shader_log);
-    printf("shader info log for GL index %u:\n%s\n", shader_index, shader_log);
-}
-
-const char* readShaderFile(const std::string& filePath) {
-    std::ifstream t(filePath);
-    if (!t.is_open()) {
-        std::cerr << "Failed to open shader file: " << filePath << std::endl;
-        return nullptr;
+GLenum glCheckError_(const char* file, int line)
+{
+    GLenum errorCode;
+    while ((errorCode = glGetError()) != GL_NO_ERROR)
+    {
+        std::string error;
+        switch (errorCode)
+        {
+        case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+        case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+        case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+        case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
+        case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
+        case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+        case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+        }
+        std::cout << error << " | " << file << " (" << line << ")" << std::endl;
     }
-    std::stringstream buffer;
-    buffer << t.rdbuf();
-    t.close();
-    return buffer.str().c_str();
+    return errorCode;
 }
-
-
+#define glCheckError() glCheckError_(__FILE__, __LINE__) 
 
 Renderer::Renderer(GLFWwindow* window) : window(window){}
 void Renderer::clear() {
@@ -51,31 +41,9 @@ void Renderer::swapBuffers() {
     glfwSwapBuffers(window);
 }
 
-void Renderer::drawLine(float x1, float y1, float x2, float y2) {
-    if (x1 < -1 || x1 > 1) {
-        x1 = convertXtoFloat(x1);
-    }
-    if (y1 < -1 || y1 > 1) {
-        y1 = convertYtoFloat(y1);
-    } 
-    if (x2 < -1 || x2 > 1) {
-        x2 = convertXtoFloat(x2);
-    }
-    if (y2 < -1 || y2 > 1) {
-        y2 = convertYtoFloat(y2);
-    }
-
-    glLineWidth(2.0f);
-    glBegin(GL_LINES);
-    glVertex2f(x1, y1);
-    glVertex2f(x2, y2);
-    glEnd();
-}
-
-
-void Renderer::drawFixedLine(float x1, float y1, float x2, float y2, float length) {
-    float dirX = x2 - x1;
-    float dirY = y2 - y1;
+void Renderer::drawFixedLine(GLuint vao, Shader shader, GLfloat points[], int size, float length) {
+    float dirX = points[3] - points[0];
+    float dirY = points[4] - points[1];;
     float distance = sqrt(dirX * dirX + dirY * dirY);
 
     if (distance == 0) {
@@ -83,10 +51,16 @@ void Renderer::drawFixedLine(float x1, float y1, float x2, float y2, float lengt
     }
     float normDirX = dirX / distance;
     float normDirY = dirY / distance;
-    float finalX = x1 + normDirX * length;
-    float finalY = y1 + normDirY * length;
+    float finalX = points[0] + normDirX * length;
+    float finalY = points[1] + normDirY * length;
 
-    drawLine(x1, y1, finalX, finalY);
+    GLfloat newPoints[] =
+    {
+        points[0], points[1], points[2],
+        finalX, finalY, points[5]
+    };
+
+    drawLine(vao , shader , newPoints, size);
 }
 
 GLuint Renderer::create2DBitMapTexture(const char* filepath) {
@@ -106,9 +80,8 @@ GLuint Renderer::create2DBitMapTexture(const char* filepath) {
         format = GL_RGBA;
 
     GLuint textureID = 0;
-    if (textureID == 0) {
-        glGenTextures(1, &textureID);
-    }
+
+    glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -121,121 +94,166 @@ GLuint Renderer::create2DBitMapTexture(const char* filepath) {
     return textureID;
 }
 
-GLuint Renderer::generateVBO() {
+void Renderer::loadAllShaders() {
+    shaders["triangle"] = Shader("..\\shaders\\triangle_vs.txt", "..\\shaders\\rainbow_fs.txt");
+    vaos["triangle"] = generateVAO();
+    shaders["guad"] = Shader("..\\shaders\\guad_vs.txt", "..\\shaders\\rainbow_fs.txt");
+    vaos["guad"] = generateVAO();
+    shaders["line"] = Shader("..\\shaders\\line_vs.txt", "..\\shaders\\line_fs.txt");
+    vaos["line"] = generateVAO();
+    shaders["guadtexture"] = Shader("..\\shaders\\background_vs.txt", "..\\shaders\\background_fs.txt");
+    vaos["guadtexture"] = generateVAO();
+    shaders["guad3d"] = Shader("..\\shaders\\guad3d_vs.txt", "..\\shaders\\guad3d_fs.txt");
+}
+
+GLuint generateVBO(GLfloat points[], int size) {
     GLuint vbo = 0;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, size, points, GL_DYNAMIC_DRAW);
+    glCheckError();
     return vbo;
 }
 
-GLuint Renderer::generateVAO() {
+GLuint generateVAO() {
     GLuint vao = 0;
     glGenVertexArrays(1, &vao);
+    glCheckError();
     return vao;
 }
 
-void Renderer::bindVao(GLuint vbo, GLuint vao, int vertexArrays, int vecSize) {
+GLuint generateIBO(int const Indices[], int size) {
+    GLuint IBO;
+    glGenBuffers(1, &IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, Indices, GL_DYNAMIC_DRAW);
+    glCheckError();
+    return IBO;
+}
+
+void bindToVao(GLuint vbo, GLuint vao, int vertexArray, int vecSize, int stride, int offset) {
     glBindVertexArray(vao);
-    glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(vertexArrays, vecSize, GL_FLOAT, GL_FALSE, 0, NULL);
+    glVertexAttribPointer(vertexArray, vecSize, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(offset * sizeof(float)));
+    glEnableVertexAttribArray(vertexArray);
+    glCheckError();
 }
 
 
-GLuint Renderer::loadVertexShader(const char* filePath) {
-    const char* vertex_shader = readShaderFile(filePath);
-    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vs, 1, &vertex_shader, NULL);
-    glCompileShader(vs);
-    int params = -1;
-    glGetShaderiv(vs, GL_COMPILE_STATUS, &params);
-    if (GL_TRUE != params) {
-        fprintf(stderr, "ERROR: GL shader index %i did not compile\n", vs);
-        _print_shader_info_log(vs);
-        return false; 
-    }
-    return vs;
+void Renderer::drawLine(GLuint vao, Shader shader, GLfloat points[], int size) {
+    assert(vao>0);
+    assert(shader.ID != 0);
+    GLuint vbo = generateVBO(points, size);
+    bindToVao(vbo, vao, 0, 3, 3, 0);
+    //bindToVao(vbo, vao, 0, 3, 6, 0);
+    shader.use();
+    glBindVertexArray(vao);
+    glDrawArrays(GL_LINES, 0, 2);
 }
 
-GLuint Renderer::loadFragmentShader(const char* filePath) {
-    const char* fragment_shader = readShaderFile(filePath);
-    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fs, 1, &fragment_shader, NULL);
-    glCompileShader(fs);
-    int params = -1;
-    glGetShaderiv(fs, GL_COMPILE_STATUS, &params);
-    if (GL_TRUE != params) {
-        fprintf(stderr, "ERROR: GL shader index %i did not compile\n", fs);
-        _print_shader_info_log(fs);
-        return false;
-    }
-    return fs;
-}
-
-void Renderer::loadAllShaders() {
-    Mesh mesh = {0};
-    mesh.vs = loadVertexShader("..\\assets\\triangle_vs.txt");
-    mesh.fs = loadFragmentShader("..\\assets\\rainbow_fs.txt");
-    mesh.vao = generateVAO();
-    mesh.name = "triangle";
-    meshes[mesh.name] = mesh;
-}
-
-void Renderer::drawTriange(Mesh mesh) {
-    float points[] = {
-       0.0f,  0.5f,  0.0f,
-       0.5f, -0.5f,  0.0f,
-      -0.5f, -0.5f,  0.0f
+void Renderer::drawTriange(GLuint vao, Shader shader, GLfloat points[], int size) {
+    assert(vao > 0);
+    assert(shader.ID != 0);
+    int indexBufferData[] =
+    {
+        0, 1, 2,
     };
-    float colours[] = {
-      1.0f, 0.0f,  0.0f,
-      0.0f, 1.0f,  0.0f,
-      0.0f, 0.0f,  1.0f
-    };
-    GLuint vbo = generateVBO();
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW);
-    GLuint colours_vbo = generateVBO();
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), colours, GL_STATIC_DRAW);
-    bindVao(vbo ,mesh.vao, 0, 3);
-    bindVao(colours_vbo, mesh.vao, 1, 3);
+    GLuint vbo = generateVBO(points, size);
+    bindToVao(vbo, vao, 0, 3, 3, 0);
+    //bindToVao(vbo, vao, 1, 3, 6, 3);
+    shader.use();
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, generateIBO(indexBufferData, sizeof(indexBufferData)));
+    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0); 
+}
 
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, mesh.fs);
-    glAttachShader(shaderProgram, mesh.vs);
-    glLinkProgram(shaderProgram);
-    glUseProgram(shaderProgram);
-    glBindVertexArray(mesh.vao);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+void Renderer::drawRectangle(GLuint vao, Shader shader, GLfloat points[], int size) {
+    assert(vao > 0);
+    assert(shader.ID != 0);
+    int indexBufferData[] =
+    {
+        0, 1, 2,
+        0, 2, 3
+    };
+    GLuint vbo = generateVBO(points, size);
+    bindToVao(vbo, vao, 0, 3, 6, 0);
+    bindToVao(vbo, vao, 1, 3, 6, 3);
+    shader.use();
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, generateIBO(indexBufferData, sizeof(indexBufferData)));
+    glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+
+void Renderer::draw2DBitMap(GLuint vao, Shader shader, GLfloat points[], int size, GLuint textureID){
+    assert(vao > 0);
+    assert(shader.ID != 0);
+    int indexBufferData[] =
+    {
+        0, 1, 3,
+        1, 2, 3
+    };
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    GLuint vbo = generateVBO(points, size);
+    bindToVao(vbo, vao, 0, 3, 8, 0);
+    bindToVao(vbo, vao, 1, 3, 8, 3);
+    bindToVao(vbo, vao, 2, 2, 8, 6);
+    shader.use();
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, generateIBO(indexBufferData, sizeof(indexBufferData)));
+    glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+void Renderer::drawCube(GLuint vao, Shader shader, GLfloat points[], int size, GLuint textureID) {
+    assert(vao > 0);
+    assert(shader.ID != 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    GLuint vbo = generateVBO(points, size);
+    bindToVao(vbo, vao, 0, 3, 5, 0);
+    bindToVao(vbo, vao, 2, 2, 5, 3);
+    shader.use();
+    glBindVertexArray(vao);
+    glDrawArrays(GL_TRIANGLES,0, 36);
+}
+
+void Renderer::changeSize(Shader shader, glm::vec3 scale) {
+
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
+    trans = glm::scale(trans, scale);
+    shader.setMat4("transform", trans);
+}
+
+void Renderer::movePos(Shader shader, glm::vec3 position) {
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, position);
+    shader.setMat4("model", model);
+}
+
+void Renderer::make3DSquare(Shader shader) {
+    glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f);
+    glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)C_RES_WIDTH / (float)C_RES_HEIGHT, 0.1f, 100.0f);
     
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-}
+    glm::mat4 view = glm::mat4(1.0f);
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 
-void Renderer::drawBackgroundTexture(GLuint textureID) {
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f, -1.0f);
-    glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f, -1.0f);
-    glTexCoord2f(1.0f, 0.0f); glVertex2f(1.0f, 1.0f);
-    glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f, 1.0f);
-    glEnd();
-    glDisable(GL_BLEND);
-}
+    glm::mat4 projection;
+    projection = glm::perspective(glm::radians(45.0f), (float)C_RES_WIDTH / (float)C_RES_HEIGHT, 0.1f, 100.0f);
 
-void Renderer::draw2DBitMap(GLuint textureID, float x1, float x2, float x3, float x4, float y1, float y2, float y3, float y4) {
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.0f, 1.0f); glVertex2f(x1, y1);
-    glTexCoord2f(1.0f, 1.0f); glVertex2f(x2, y2);
-    glTexCoord2f(1.0f, 0.0f); glVertex2f(x3, y3);
-    glTexCoord2f(0.0f, 0.0f); glVertex2f(x4, y4);
-    glEnd();
-    glDisable(GL_BLEND);
+    model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+
+    shader.setMat4("model", model);
+    shader.setMat4("view", view);
+    shader.setMat4("projection", proj);
+
+    glCheckError();
 }
 
 

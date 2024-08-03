@@ -3,7 +3,8 @@
 #include "soundEngine.h"
 #include "SDL2/SDL.h"
 #include "sword.h"
-
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 float mousePosX = 0.0f;
 float mousePosY = 0.0f;
 
@@ -12,8 +13,8 @@ void errorCallback(int error, const char* description) {
 }
 
 void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
-    mousePosX = xpos;
-    mousePosY = ypos;
+    mousePosX = xpos/C_RES_WIDTH/2-1;
+    mousePosY = ypos / C_RES_HEIGHT / 2 - 1;
 }
 
 int main(int argc, char* argv[]){
@@ -46,20 +47,88 @@ int main(int argc, char* argv[]){
     GLuint monsterTexture = renderer.create2DBitMapTexture("..\\assets\\monster1.bmp");
     GLuint backgroundTexture = renderer.create2DBitMapTexture("..\\assets\\background.bmp");
 
-
-    //while (!glfwWindowShouldClose(window)) {
-    //    renderer.clear();
-    //    renderer.drawLine(0.1, 0.5, 0.2, 0.9);
-    //    renderer.drawBackgroundTexture(backgroundTexture);
-    //    //renderer.draw2DBitMap(monsterTexture);
-    //    drawSword(renderer, mousePosX, mousePosY);
-    //    renderer.swapBuffers();
-    //    glfwPollEvents(); 
-    //}
     renderer.loadAllShaders();
+    float line[]{
+        -0.3f, -0.3f,  0.0f,
+        0.3f, 0.3f,  0.0f
+    };
+
+    float box[] = {
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    };
+
+    GLfloat triangle[] = {
+       0.0f,  0.5f,  0.0f,  1.0f, 0.0f, 0.0f,
+       0.5f, -0.5f,  0.0f,  0.0f, 1.0f, 0.0f,
+      -0.5f, -0.5f,  0.0f,  0.0f, 0.0f, 1.0f,
+    };
+
+    GLfloat guad[] =
+    {
+        -0.9f, -0.9f, 0.0f,  1.0f, 0.0f, 0.0f,
+         0.9f, -0.9f, 0.0f,  0.0f, 1.0f, 0.0f,
+         0.9f,  0.9f, 0.0f,  0.0f, 0.0f, 1.0f,
+        -0.9f,  0.9f, 0.0f,  1.0f, 1.0f, 0.0f,
+    };
+
+    float background[] = {
+         1.0f,  -1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
+         1.0f,   1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+        -1.0f,   1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
+        -1.0f,  -1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f 
+    };
+
+
+    glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        renderer.drawTriange(renderer.meshes["triangle"]);
+        renderer.make3DSquare(renderer.shaders["guad3d"]);    
+        renderer.drawCube(renderer.vaos["guadtexture"], renderer.shaders["guad3d"], box, sizeof(box), backgroundTexture);
+        //renderer.changeSize(renderer.shaders["guadtexture"], glm::vec3(0.5, 0.5, 0.5));
+        //renderer.draw2DBitMap(renderer.vaos["guadtexture"], renderer.shaders["guadtexture"], background, sizeof(background), backgroundTexture);
+        //renderer.drawTriange(renderer.vaos["triangle"], renderer.shaders["triangle"], triangle, sizeof(triangle));
+        //renderer.drawRectangle(renderer.vaos["guad"], renderer.shaders["guad"], guad, sizeof(guad));
+        //renderer.drawFixedLine(renderer.vaos["line"], renderer.shaders["line"], line, sizeof(line), 1.8);
         glfwPollEvents();
         glfwSwapBuffers(window);
     }

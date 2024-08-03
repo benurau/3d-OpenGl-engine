@@ -33,8 +33,10 @@
     <ClInclude Include="..\..\..\..\Downloads\stb_image.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="entity.h" />
+    <ClInclude Include="object.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="misc.h" />
+    <ClInclude Include="shader.h" />
     <ClInclude Include="soundEngine.h" />
     <ClInclude Include="sword.h" />
     <ClInclude Include="Wav.h" />
