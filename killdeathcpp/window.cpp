@@ -5,6 +5,7 @@
 #include "sword.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "Object.h"
 float mousePosX = 0.0f;
 float mousePosY = 0.0f;
 
@@ -97,7 +98,7 @@ int main(int argc, char* argv[]){
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
 
-    GLfloat triangle[] = {
+    GLfloat triangleVerticles[] = {
        0.0f,  0.5f,  0.0f,  1.0f, 0.0f, 0.0f,
        0.5f, -0.5f,  0.0f,  0.0f, 1.0f, 0.0f,
       -0.5f, -0.5f,  0.0f,  0.0f, 0.0f, 1.0f,
@@ -118,17 +119,22 @@ int main(int argc, char* argv[]){
         -1.0f,  -1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f 
     };
 
+    int guadIndices[]{
+        0, 1, 2,
+        0, 2, 3
+    };
+    //Object::Object(GLfloat verticles[], int verticlesByteSize, int totalVerticles, Shader shader, int vboCount, int textureID)
+    Object triangleObject(triangleVerticles, sizeof(triangleVerticles), 3, renderer.shaders["triangle"], 2, 0);
+    Object guadObject(guad, sizeof(guad), 6, renderer.shaders["guad"], 2, 0, guadIndices, sizeof(guadIndices));
+    Object Background2dObject(background, sizeof(background), 6, renderer.shaders["guadtexture"], 3, backgroundTexture, guadIndices, sizeof(guadIndices));
+    Object cubeObject(box, sizeof(box), 36, renderer.shaders["guad3d"], 4, backgroundTexture);
 
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        renderer.make3DSquare(renderer.shaders["guad3d"]);    
-        renderer.drawCube(renderer.vaos["guadtexture"], renderer.shaders["guad3d"], box, sizeof(box), backgroundTexture);
         //renderer.changeSize(renderer.shaders["guadtexture"], glm::vec3(0.5, 0.5, 0.5));
-        //renderer.draw2DBitMap(renderer.vaos["guadtexture"], renderer.shaders["guadtexture"], background, sizeof(background), backgroundTexture);
-        //renderer.drawTriange(renderer.vaos["triangle"], renderer.shaders["triangle"], triangle, sizeof(triangle));
-        //renderer.drawRectangle(renderer.vaos["guad"], renderer.shaders["guad"], guad, sizeof(guad));
-        //renderer.drawFixedLine(renderer.vaos["line"], renderer.shaders["line"], line, sizeof(line), 1.8);
+        cubeObject.make3DSquare();
+        renderer.drawObject(cubeObject);
         glfwPollEvents();
         glfwSwapBuffers(window);
     }

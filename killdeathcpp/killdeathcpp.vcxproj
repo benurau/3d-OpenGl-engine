@@ -23,6 +23,7 @@
     <ClCompile Include="..\glad.c" />
     <ClCompile Include="collision.cpp" />
     <ClCompile Include="entity.cpp" />
+    <ClCompile Include="Object.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="soundEngine.cpp" />
     <ClCompile Include="sword.cpp" />
@@ -33,7 +34,7 @@
     <ClInclude Include="..\..\..\..\Downloads\stb_image.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="entity.h" />
-    <ClInclude Include="object.h" />
+    <ClInclude Include="Object.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="misc.h" />
     <ClInclude Include="shader.h" />

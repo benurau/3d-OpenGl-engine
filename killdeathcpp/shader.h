@@ -11,16 +11,19 @@
 class Shader
 {
 public:
-    unsigned int ID = 0;
+    unsigned int ID;
+    int shaderExists;
     Shader() {}
     Shader(const char* vertexPath, const char* fragmentPath)
     {
+        ID = 0;
+        shaderExists = 1;
         // 1. retrieve the vertex/fragment source code from filePath
         std::string vertexCode;
         std::string fragmentCode;
         std::ifstream vShaderFile;
         std::ifstream fShaderFile;
-        // ensure ifstream objects can throw exceptions:
+        // ensure ifstream Objects can throw exceptions:
         vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         try
