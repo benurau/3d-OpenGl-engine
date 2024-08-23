@@ -32,6 +32,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Downloads\stb_image.h" />
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="entity.h" />
     <ClInclude Include="Object.h" />
