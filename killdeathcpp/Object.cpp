@@ -26,12 +26,12 @@ GLenum glCheckError_(const char* file, int line)
 #define glCheckError() glCheckError_(__FILE__, __LINE__) 
 
 
-GLuint generateVBO(GLfloat points[], int size) {
-    assert(size > 0, "generateVBo with empty verticle array");
+GLuint generateVBO(std::vector<Vertex>vertices) {
+    //assert(size > 0, "generateVBo with empty verticle array");
     GLuint vbo = 0;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, size, points, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
     glCheckError();
     return vbo;
 }
@@ -43,17 +43,17 @@ GLuint generateVAO() {
     return vao;
 }
 
-GLuint generateIBO(int const Indices[], int size) {
-    assert(size > 0, "objectconstructor3 indices");
+GLuint generateIBO(std::vector<GLuint> indices) {
+    assert(indices.size() > 0, "objectconstructor3 indices");
     GLuint IBO = 0;
     glGenBuffers(1, &IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, Indices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(int), &indices[0], GL_DYNAMIC_DRAW);
     glCheckError();
     return IBO;
 }
 
-Object::Object(GLfloat verticles[], int verticlesByteSize, int totalVerticles, Shader shader, VBOFormat format, int textureID) {
+Object::Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID) {
     this->vao = generateVAO();
     assert(shader.ID > 0, "objectconstructor1 shader");
     assert(totalVerticles > 0, "objectconstructor1 totalVerticles");
@@ -61,52 +61,34 @@ Object::Object(GLfloat verticles[], int verticlesByteSize, int totalVerticles, S
     this->textureID = textureID;
     this->ibo = 0;
     this->totalVerticles = totalVerticles;
-    bindAlltoVao(verticles, verticlesByteSize, format);
+    bindAlltoVao(vertices);
 }
 
-Object::Object(GLfloat verticles[], int verticlesByteSize, int totalVerticles, Shader shader, VBOFormat format, int textureID, int const indices[], int indicesSize) {
+Object::Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID, std::vector<GLuint> indices) {
     this->vao = generateVAO();
     assert(shader.ID > 0, "objectconstructor2 shader");
     assert(totalVerticles > 0, "objectconstructor2 totalVerticles");
     this->shader = shader;
     this->textureID = textureID;
     this->totalVerticles = totalVerticles;
-    this->ibo = generateIBO(indices, indicesSize);
-    bindAlltoVao(verticles, verticlesByteSize, format);
+    this->hitbox = HitBox(vertices, indices, shader);
+    this->ibo = generateIBO(indices);
+    bindAlltoVao(vertices);
 }
 
 void Object::bindToVao(GLuint vbo, int vertexArray, int vecSize, int stride, int offset) {
     glBindVertexArray(this->vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(vertexArray, vecSize, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(offset * sizeof(float)));
+    glVertexAttribPointer(vertexArray, vecSize, GL_FLOAT, GL_FALSE, stride, (void*)offset);
     glEnableVertexAttribArray(vertexArray);
     glCheckError();
 }
 
-void Object::bindAlltoVao(GLfloat verticles[], int verticlesByteSize, VBOFormat format) {
-    GLfloat vbo = generateVBO(verticles, verticlesByteSize);
-    assert(verticlesByteSize > 0);
-    if (format == P) {
-        bindToVao(vbo, 0, 3, 3, 0);
-    }
-    if(format == PC) {
-        bindToVao(vbo, 0, 3, 6, 0);
-        bindToVao(vbo, 1, 3, 6, 3);
-    }
-    if (format == PCT && textureID > 0) {
-        bindToVao(vbo, 0, 3, 8, 0);
-        bindToVao(vbo, 1, 3, 8, 3);
-        bindToVao(vbo, 2, 2, 8, 6);
-    }   
-    else if (format == PT && textureID > 0) {
-        bindToVao(vbo, 0, 3, 5, 0);
-        bindToVao(vbo, 2, 2, 5, 3);
-    }
-    else if (format == PT || format == PCT) {
-        std::cout << "notextureid and T in VBOFormat";
-        bindToVao(vbo, 0, 3, 6, 0);
-        bindToVao(vbo, 1, 3, 6, 3);
-    }
+void Object::bindAlltoVao(std::vector<Vertex>vertices) {
+    GLfloat vbo = generateVBO(vertices);
+    bindToVao(vbo, 0, 3, sizeof(Vertex), 0);
+    bindToVao(vbo, 1, 3, sizeof(Vertex), offsetof(Vertex, normal));
+    bindToVao(vbo, 2, 2, sizeof(Vertex), offsetof(Vertex, texCoords));
 }
 
 void Object::rotate(float degrees, glm::vec3 axises) {

@@ -1,20 +1,13 @@
 #pragma once
-#include <glm/glm.hpp>
 #include "shader.h"
 #include <GLFW/glfw3.h>
-
-enum VBOFormat {
-    P,
-    PC,
-    PCT,
-    PT
-};
+#include "HitBox.h"
 
 
 GLenum glCheckError_(const char* file, int line);
-GLuint generateVBO(GLfloat points[], int size);
+GLuint generateVBO(std::vector<Vertex> vertices);
 GLuint generateVAO();
-GLuint generateIBO(int const Indices[], int size);
+GLuint generateIBO(std::vector<GLuint> indices);
 
 class Object {
 public:
@@ -23,10 +16,11 @@ public:
     Shader shader;
     int totalVerticles;
     GLuint textureID;
+    HitBox hitbox;
 
     Object();
-    Object(GLfloat verticles[], int verticlesByteSize, int totalVerticles, Shader shader, VBOFormat format, int textureID);
-    Object(GLfloat verticles[], int verticlesByteSize, int totalVerticles, Shader shader, VBOFormat format, int textureID, int const indices[], int indicesSize);
+    Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID);
+    Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID, std::vector<GLuint> indices);
 
     void rotate(float degrees, glm::vec3 axises);
     void changeSize(glm::vec3 vec);
@@ -40,10 +34,10 @@ public:
         this->textureID = textureID;
     }
     void bindToVao(GLuint vbo, int vertexArray, int vecSize, int stride, int offset);
-    void changeVbo(GLfloat* verticles, int verticlesByteSize) {
+    /*void changeVbo(GLfloat* verticles, int verticlesByteSize) {
         GLfloat vbo = generateVBO(verticles, verticlesByteSize);
-    } 
-    void bindAlltoVao(GLfloat verticles[], int verticlesByteSize, VBOFormat format);
+    } */
+    void bindAlltoVao(std::vector<Vertex>vertices);
 
 private:
 };

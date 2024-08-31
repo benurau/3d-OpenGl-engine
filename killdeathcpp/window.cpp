@@ -60,81 +60,85 @@ int main(int argc, char* argv[]){
         0.3f, 0.3f,  0.0f
     };
 
-    float box[] = {
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    std::vector<glm::vec3> cubePos = {
+        {-0.25f, -0.25f,  0.25f}, {0.25f, -0.25f,  0.25f}, {0.25f,  0.25f,  0.25f}, {-0.25f,  0.25f,  0.25f},
+        {-0.25f, -0.25f, -0.25f}, {0.25f, -0.25f, -0.25f}, {0.25f,  0.25f, -0.25f}, {-0.25f,  0.25f, -0.25f}
     };
 
-    GLfloat triangleVerticles[] = {
-       0.0f,  0.5f,  0.0f,  1.0f, 0.0f, 0.0f,
-       0.5f, -0.5f,  0.0f,  0.0f, 1.0f, 0.0f,
-      -0.5f, -0.5f,  0.0f,  0.0f, 0.0f, 1.0f,
+    std::vector<glm::vec2> texCoords = {
+        {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f},
+        {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}
     };
 
-    GLfloat guad[] =
-    {
-        -0.9f, -0.9f, 0.0f,  1.0f, 0.0f, 0.0f,
-         0.9f, -0.9f, 0.0f,  0.0f, 1.0f, 0.0f,
-         0.9f,  0.9f, 0.0f,  0.0f, 0.0f, 1.0f,
-        -0.9f,  0.9f, 0.0f,  1.0f, 1.0f, 0.0f,
+    std::vector<glm::vec3> normals(8, { 0.0f, 0.0f, 0.0f });
+
+    std::vector<unsigned int> cubeIndices = {
+        0, 1, 2, 2, 3, 0,
+        4, 5, 6, 6, 7, 4,
+        4, 0, 3, 3, 7, 4,
+        1, 5, 6, 6, 2, 1,
+        3, 2, 6, 6, 7, 3,
+        4, 5, 1, 1, 0, 4
     };
 
-    float background[] = {
-         1.0f,  -1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
-         1.0f,   1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
-        -1.0f,   1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
-        -1.0f,  -1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f 
-    };
+    std::vector<Vertex> cubeVertices;
 
-    int guadIndices[]{
+    for (size_t i = 0; i < cubePos.size(); ++i) {
+        Vertex vertex;
+        vertex.position = cubePos[i];
+        vertex.normal = normals[i];
+        vertex.texCoords = texCoords[i];
+        cubeVertices.push_back(vertex);
+    }
+
+    Vertex vertex3;
+    vertex3.position = glm::vec3(1.0f, -1.0f, 0.0f);
+    vertex3.normal = glm::vec3(1.0f, 0.0f, 0.0f);
+    vertex3.texCoords = glm::vec2(0.0f, 0.0f);
+    Vertex vertex32;
+    vertex32.position = glm::vec3(1.0f, 1.0f, 0.8f);
+    vertex32.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+    vertex32.texCoords = glm::vec2(0.0f, 0.0f);
+    Vertex vertex33;
+    vertex33.position = glm::vec3(-1.0f, 1.0f, 0.0f);
+    vertex33.normal = glm::vec3(0.0f, 0.0f, 1.0f);
+    vertex33.texCoords = glm::vec2(0.0f, 0.0f);
+    Vertex vertex34;
+    vertex34.position = glm::vec3(-1.0f, -1.0f, 0.0f);
+    vertex34.normal = glm::vec3(1.0f, 1.0f, 0.0f);
+    vertex34.texCoords = glm::vec2(0.0f, 0.0f);
+    std::vector<Vertex> guadVertices;
+    guadVertices.push_back(vertex3);
+    guadVertices.push_back(vertex32);
+    guadVertices.push_back(vertex33);
+    guadVertices.push_back(vertex34);
+
+    std::vector<GLuint> guadIndices{
         0, 1, 2,
         0, 2, 3
     };
 
-   
-    Object triangleObject(triangleVerticles, sizeof(triangleVerticles), 3, renderer.shaders["triangle"], PC, 0);
-    Object guadObject(guad, sizeof(guad), 6, renderer.shaders["guad"], PC, 0, guadIndices, sizeof(guadIndices));
-    Object Background2dObject(background, sizeof(background), 6, renderer.shaders["guadtexture"], PCT, backgroundTexture, guadIndices, sizeof(guadIndices));
-    Object cubeObject(box, sizeof(box), 36, renderer.shaders["guad3d"], PT, backgroundTexture);
+    Vertex vertex1;
+    vertex1.position = glm::vec3(0.0f, 0.5f, 0.0f);
+    vertex1.normal = glm::vec3(1.0f, 0.0f, 0.0f);
+    vertex1.texCoords = glm::vec2(0.0f, 0.0f);
+    Vertex vertex12;
+    vertex12.position = glm::vec3(0.5f, -0.5f, 0.8f);
+    vertex12.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+    vertex12.texCoords = glm::vec2(0.0f, 0.0f);
+    Vertex vertex13;
+    vertex13.position = glm::vec3(-0.5f, -0.5f, 0.0f);
+    vertex13.normal = glm::vec3(0.0f, 0.0f, 1.0f);
+    vertex13.texCoords = glm::vec2(0.0f, 0.0f);
+    std::vector<Vertex> triangleVertices;
+    triangleVertices.push_back(vertex1);
+    triangleVertices.push_back(vertex12);
+    triangleVertices.push_back(vertex13);
+
+    Object triangleObject(triangleVertices, 3, renderer.shaders["triangle"], 0);
+    Object guadObject(guadVertices, 6, renderer.shaders["guad"], 0, guadIndices);
+    Object background2dObject(guadVertices, 6, renderer.shaders["guadtexture"], backgroundTexture, guadIndices);
+    Object cubeObject(cubeVertices, 36, renderer.shaders["guad3d"], backgroundTexture, cubeIndices);
 
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
@@ -147,6 +151,7 @@ int main(int argc, char* argv[]){
         cubeObject.make3DSquare();
         cubeObject.changeView(camera.GetViewMatrix());
         renderer.drawObject(cubeObject);
+        std::cout<<cubeObject.hitbox.checkAllPointsInTriangles(camera.position);
         glfwPollEvents();
         glfwSwapBuffers(window);
     }
@@ -179,18 +184,18 @@ void processKeyboard(GLFWwindow* window) {
     }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         camera.ProcessKeyboard(FORWARD, deltaTime);
-        std::cout << "forward";
+        //std::cout << "forward";
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        std::cout << "backward";
+        //std::cout << "backward";
         camera.ProcessKeyboard(BACKWARD, deltaTime);
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        std::cout << "left";
+        //std::cout << "left";
         camera.ProcessKeyboard(LEFT, deltaTime);
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        std::cout << "right";
+        //std::cout << "right";
         camera.ProcessKeyboard(RIGHT, deltaTime);
     }
 }

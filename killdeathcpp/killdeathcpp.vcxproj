@@ -35,6 +35,8 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="entity.h" />
+    <ClInclude Include="Geometry3D.h" />
+    <ClInclude Include="HitBox.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="misc.h" />
