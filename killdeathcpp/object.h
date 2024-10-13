@@ -19,7 +19,7 @@ public:
     HitBox hitbox;
 
     Object();
-    Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID);
+    /*Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID);*/
     Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID, std::vector<GLuint> indices);
 
     void rotate(float degrees, glm::vec3 axises);
@@ -29,6 +29,7 @@ public:
     void changeView(glm::mat4 view);
     void changePerspective(float degrees);
     void make3DSquare();
+    void setDefault();
     
     void setTexture(int textureID) {
         this->textureID = textureID;
@@ -38,6 +39,6 @@ public:
         GLfloat vbo = generateVBO(verticles, verticlesByteSize);
     } */
     void bindAlltoVao(std::vector<Vertex>vertices);
-
+    void Destroy();
 private:
 };

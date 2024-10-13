@@ -1,10 +1,6 @@
 #include <iostream>
 #include "renderer.h"
 #include "soundEngine.h"
-#include "SDL2/SDL.h"
-#include "sword.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include "Object.h"
 #include "Camera.h"
 
@@ -61,8 +57,8 @@ int main(int argc, char* argv[]){
     };
 
     std::vector<glm::vec3> cubePos = {
-        {-0.25f, -0.25f,  0.25f}, {0.25f, -0.25f,  0.25f}, {0.25f,  0.25f,  0.25f}, {-0.25f,  0.25f,  0.25f},
-        {-0.25f, -0.25f, -0.25f}, {0.25f, -0.25f, -0.25f}, {0.25f,  0.25f, -0.25f}, {-0.25f,  0.25f, -0.25f}
+        {0.0f, -0.25f, 0.5f}, {0.5f, -0.25f, 0.5f}, {0.5f, 0.25f,  0.5f}, {0.0f, 0.25f, 0.5f},
+        {0.0f, -0.25f, 0.0f}, {0.5f, -0.25f, 0.0f}, {0.5f, 0.25f, 0.0f}, {0.0f, 0.25f, 0.0f}
     };
 
     std::vector<glm::vec2> texCoords = {
@@ -135,29 +131,41 @@ int main(int argc, char* argv[]){
     triangleVertices.push_back(vertex12);
     triangleVertices.push_back(vertex13);
 
-    Object triangleObject(triangleVertices, 3, renderer.shaders["triangle"], 0);
+
+    //Object triangleObject(triangleVertices, 3, renderer.shaders["triangle"], 0);
     Object guadObject(guadVertices, 6, renderer.shaders["guad"], 0, guadIndices);
     Object background2dObject(guadVertices, 6, renderer.shaders["guadtexture"], backgroundTexture, guadIndices);
     Object cubeObject(cubeVertices, 36, renderer.shaders["guad3d"], backgroundTexture, cubeIndices);
+    std::vector<Object> objects;
+    objects.push_back(guadObject);
+    objects.push_back(background2dObject);
+    objects.push_back(cubeObject);
 
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-        processKeyboard(window);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        processKeyboard(window);
         cubeObject.make3DSquare();
         cubeObject.changeView(camera.GetViewMatrix());
         renderer.drawObject(cubeObject);
-        std::cout<<cubeObject.hitbox.checkAllPointsInTriangles(camera.position);
+        if (cubeObject.hitbox.CheckCameraCollision(camera.position, camera.movement)) {
+            camera.position -= camera.movement - cubeObject.hitbox.correctingMovement;
+        }
+        //printf("return of collission %d \n",cubeObject.hitbox.CheckCameraCollision(camera.position, camera.movement));     
+        //std::cout<<cubeObject.hitbox.checkAllPointsInTriangles(camera.position);
         glfwPollEvents();
         glfwSwapBuffers(window);
     }
 
+    for (Object i : objects) {
+        i.Destroy();
+    }
     sEngine.audioCleanup(huh, aDevice);
     glfwTerminate();
+
     return 0;
 }
 

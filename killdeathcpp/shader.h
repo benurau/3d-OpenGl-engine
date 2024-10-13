@@ -96,6 +96,9 @@ public:
     {
         glUniformMatrix4fv(glGetUniformLocation(ID, name), 1, GL_FALSE, glm::value_ptr(trans));
     }
+    glm::mat4 getMat4(const GLchar* name) {
+        return glGetUniformLocation(ID, name);
+    }
 
 private:
     // utility function for checking shader compilation/linking errors.

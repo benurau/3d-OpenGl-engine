@@ -53,16 +53,16 @@ GLuint generateIBO(std::vector<GLuint> indices) {
     return IBO;
 }
 
-Object::Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID) {
-    this->vao = generateVAO();
-    assert(shader.ID > 0, "objectconstructor1 shader");
-    assert(totalVerticles > 0, "objectconstructor1 totalVerticles");
-    this->shader = shader;
-    this->textureID = textureID;
-    this->ibo = 0;
-    this->totalVerticles = totalVerticles;
-    bindAlltoVao(vertices);
-}
+//Object::Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID) {
+//    this->vao = generateVAO();
+//    assert(shader.ID > 0, "objectconstructor1 shader");
+//    assert(totalVerticles > 0, "objectconstructor1 totalVerticles");
+//    this->shader = shader;
+//    this->textureID = textureID;
+//    this->ibo = 0;
+//    this->totalVerticles = totalVerticles;
+//    bindAlltoVao(vertices);
+//}
 
 Object::Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID, std::vector<GLuint> indices) {
     this->vao = generateVAO();
@@ -71,9 +71,10 @@ Object::Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, i
     this->shader = shader;
     this->textureID = textureID;
     this->totalVerticles = totalVerticles;
-    this->hitbox = HitBox(vertices, indices, shader);
+    this->hitbox = HitBox(vertices, indices);
     this->ibo = generateIBO(indices);
     bindAlltoVao(vertices);
+    setDefault();
 }
 
 void Object::bindToVao(GLuint vbo, int vertexArray, int vecSize, int stride, int offset) {
@@ -95,40 +96,57 @@ void Object::rotate(float degrees, glm::vec3 axises) {
     glm::mat4 trans = glm::mat4(1.0f);
     trans = glm::rotate(trans, glm::radians(degrees), axises);
     this->shader.setMat4("model", trans);
+    hitbox.setModelMatrix(trans);
 }
 
 void Object::changeSize(glm::vec3 scale) {
     glm::mat4 trans = glm::mat4(1.0f);
     trans = glm::scale(trans, scale);
     this->shader.setMat4("model", trans);
+    hitbox.setModelMatrix(trans);
 }
 
 void Object::movePos(glm::vec3 position) {
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, position);
-    this->shader.setMat4("model", model);
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::translate(trans, position);
+    this->shader.setMat4("model", trans);
+    hitbox.setModelMatrix(trans);
 }
 
 void Object::changeView(glm::vec3 position) {
     glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, position);
     this->shader.setMat4("view", view);
+    hitbox.setViewMatrix(view);
 }
 
 void Object::changeView(glm::mat4 view) {
     this->shader.setMat4("view", view);
+    hitbox.setViewMatrix(view);
 }
 
 void Object::changePerspective(float degrees) {
     glm::ortho(0.0f, (float)C_RES_WIDTH, 0.0f, (float)C_RES_HEIGHT, 0.1f, 100.0f);
     glm::mat4 proj = glm::perspective(glm::radians(degrees), (float)C_RES_WIDTH / (float)C_RES_HEIGHT, 0.1f, 100.0f);
     this->shader.setMat4("projection", proj);
+    hitbox.setProjectionMatrix(proj);
 }
 
 void Object::make3DSquare() {
-    rotate(-55.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    rotate(1.0f, glm::vec3(1.0f, 0.0f, 0.0f));
     changePerspective(45.0f);
-    rotate((float)glfwGetTime() * 50.0f, glm::vec3(0.5f, 1.0f, 0.0f));
+    //rotate((float)glfwGetTime() * 50.0f, glm::vec3(0.5f, 1.0f, 0.0f));
+}
+
+void Object::setDefault() {
+    changeView(glm::mat4());
+    changePerspective(0);
+    changePerspective(45.0f);
+    changeSize(glm::vec3());
+}
+
+void Object::Destroy() {
+    this->hitbox.Destroy();
 }
 
 

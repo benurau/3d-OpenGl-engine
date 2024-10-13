@@ -22,19 +22,15 @@
   <ItemGroup>
     <ClCompile Include="..\glad.c" />
     <ClCompile Include="collision.cpp" />
-    <ClCompile Include="entity.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="soundEngine.cpp" />
-    <ClCompile Include="sword.cpp" />
     <ClCompile Include="Wav.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Downloads\stb_image.h" />
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="collision.h" />
-    <ClInclude Include="entity.h" />
     <ClInclude Include="Geometry3D.h" />
     <ClInclude Include="HitBox.h" />
     <ClInclude Include="Object.h" />
@@ -42,7 +38,6 @@
     <ClInclude Include="misc.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="soundEngine.h" />
-    <ClInclude Include="sword.h" />
     <ClInclude Include="Wav.h" />
   </ItemGroup>
   <ItemGroup>

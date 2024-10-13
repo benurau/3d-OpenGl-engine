@@ -1,9 +1,11 @@
 #ifndef CAMERA_H
 #define CAMERA_H
+#define RADIUS 0.15625f
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "object.h"
 
 enum Camera_Movement {
     FORWARD,
@@ -22,10 +24,12 @@ class Camera
 {
 public:
     glm::vec3 position;
+    glm::vec3 movement = {0,0,0};
     glm::vec3 Front;
     glm::vec3 Up;
     glm::vec3 Right;
     glm::vec3 WorldUp;
+
 
     float Yaw;
     float Pitch;
@@ -61,13 +65,22 @@ public:
         float velocity = MovementSpeed * deltaTime;
         if (direction == FORWARD)
             position += Front * velocity;
+            movement = Front * velocity;
         if (direction == BACKWARD)
             position -= Front * velocity;
+            movement = -Front * velocity;
         if (direction == LEFT)
             position -= Right * velocity;
+            movement = -Right * velocity;
         if (direction == RIGHT)
             position += Right * velocity;
+            movement = Right * velocity;
         position.y = 0.0f;
+
+    }
+
+    void Colissionresponse() {
+
     }
 
     void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
@@ -84,8 +97,9 @@ public:
             if (Pitch < -89.0f)
                 Pitch = -89.0f;
         }
-        updateCameraVectors();
+        updateCameraVectors();       
     }
+
 
 private:
     void updateCameraVectors()

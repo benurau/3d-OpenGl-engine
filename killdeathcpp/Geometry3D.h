@@ -16,4 +16,14 @@ struct Triangle {
     Vertex aV;
     Vertex bV;
     Vertex cV;
+
+    bool close;
+};
+
+class CTriangle
+{
+public:
+    glm::vec3 Vertex[3], Edge[3], Normal[4];
+    float EdgeLength[3], D[4];
+    bool close;
 };
