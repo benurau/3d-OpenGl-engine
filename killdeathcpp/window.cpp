@@ -21,6 +21,11 @@ void processKeyboard(GLFWwindow* window);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 
+std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
+    os << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+    return os;
+}
+
 int main(int argc, char* argv[]){
     glfwSetErrorCallback(errorCallback);
     if (!glfwInit()) {
@@ -43,10 +48,10 @@ int main(int argc, char* argv[]){
 
 
     Renderer renderer(window);
-    soundEngine sEngine;
-    sEngine.initialize();
-    WAV huh = sEngine.loadWavFile("..\\assets\\ahem_x.wav", "ahem");
-    SDL_AudioDeviceID aDevice = sEngine.openAudioDevice(huh);
+    //soundEngine sEngine;
+    //sEngine.initialize();
+    //WAV huh = sEngine.loadWavFile("..\\assets\\ahem_x.wav", "ahem");
+    //SDL_AudioDeviceID aDevice = sEngine.openAudioDevice(huh);
     GLuint monsterTexture = renderer.create2DBitMapTexture("..\\assets\\monster1.bmp");
     GLuint backgroundTexture = renderer.create2DBitMapTexture("..\\assets\\background.bmp");
 
@@ -69,12 +74,12 @@ int main(int argc, char* argv[]){
     std::vector<glm::vec3> normals(8, { 0.0f, 0.0f, 0.0f });
 
     std::vector<unsigned int> cubeIndices = {
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4,
-        4, 0, 3, 3, 7, 4,
-        1, 5, 6, 6, 2, 1,
-        3, 2, 6, 6, 7, 3,
-        4, 5, 1, 1, 0, 4
+        0, 1, 2,  2, 3, 0,
+        6, 5, 4,  4, 7, 6,
+        4, 0, 3,  3, 7, 4,
+        1, 5, 6,  6, 2, 1,
+        3, 2, 6,  6, 7, 3,
+        4, 5, 1,  1, 0, 4
     };
 
     std::vector<Vertex> cubeVertices;
@@ -152,7 +157,9 @@ int main(int argc, char* argv[]){
         cubeObject.changeView(camera.GetViewMatrix());
         renderer.drawObject(cubeObject);
         if (cubeObject.hitbox.CheckCameraCollision(camera.position, camera.movement)) {
-            camera.position -= camera.movement - cubeObject.hitbox.correctingMovement;
+            //std::cout << "camera offest: " << cubeObject.hitbox.correctingMovement << std::endl;
+            //std::cout << "camera.position: " << camera.position<< std::endl;
+            camera.position -= camera.movement - cubeObject.hitbox.correctingMovement*0.2f;
         }
         //printf("return of collission %d \n",cubeObject.hitbox.CheckCameraCollision(camera.position, camera.movement));     
         //std::cout<<cubeObject.hitbox.checkAllPointsInTriangles(camera.position);
@@ -163,7 +170,7 @@ int main(int argc, char* argv[]){
     for (Object i : objects) {
         i.Destroy();
     }
-    sEngine.audioCleanup(huh, aDevice);
+    //sEngine.audioCleanup(huh, aDevice);
     glfwTerminate();
 
     return 0;

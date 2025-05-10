@@ -2,6 +2,7 @@
 #include <windows.h>
 
 
+
 		
 
 #define C_RES_WIDTH	  1024
@@ -11,7 +12,6 @@
 
 #define SWORD_WIDTH (C_RES_WIDTH / 50)
 #define SWORD_LENGTH (C_RES_HEIGHT * 0.8)
-
 
 
 

@@ -1,6 +1,6 @@
 #include "Geometry3D.h"
 #include "shader.h"
-#define RADIUS 0.15625f
+#define RADIUS 0.15f
 
 struct AABB {
     glm::vec3 min;
