@@ -31,12 +31,14 @@
     <ClInclude Include="..\..\..\..\Downloads\stb_image.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Geometry3D.h" />
+    <ClInclude Include="gravity.h" />
     <ClInclude Include="HitBox.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="misc.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="soundEngine.h" />
+    <ClInclude Include="ObjectParams.h" />
     <ClInclude Include="Wav.h" />
   </ItemGroup>
   <ItemGroup>

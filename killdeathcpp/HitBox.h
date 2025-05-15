@@ -157,8 +157,9 @@ public:
                         {
                             if (dot(cTriangle->Normal[3], position) + cTriangle->D[3] < 0.0f)
                             {
+
                                 //printf("%f, %f, %f \n", cTriangle->Normal[0].x, cTriangle->Normal[0].y, cTriangle->Normal[0].z);
-                                Movement += cTriangle->Normal[0] * (RADIUS - Distance);
+                                Movement += cTriangle->Normal[0] * ((RADIUS+0.005f) - Distance);
                                 correctingMovement = Movement;
                                 CheckCameraCollision(position, Movement, depth + 1);
                                 return true;
@@ -185,10 +186,11 @@ public:
                         {
                             glm::vec3 Normal = VCP - Triangle->Edge[e] * EdotVCP;
                             float Distance = length(Normal);
-                            std::cout << "camertadisntancefromedge" << Distance <<"\n";
+                            
+                            //std::cout << "camertadisntancefromedge" << Distance <<"\n";
                             if (Distance > 0.0f && Distance < RADIUS)
                             {
-                                Movement += Normal * (RADIUS / Distance - 1.0f);
+                                Movement += Normal * ((RADIUS + 0.005f) / Distance - 1.0f);
                                 correctingMovement = Movement;
                                 CheckCameraCollision(position, Movement, depth + 1);
                                 return true;
@@ -215,7 +217,7 @@ public:
                         //std::cout << "camertadisntancefromvertex" << Distance;
                         if (Distance > 0.0f && Distance < RADIUS)
                         {
-                            Movement += Normal * (RADIUS / Distance - 1.0f);
+                            Movement += Normal * ((RADIUS + 0.005f) / Distance - 1.0f);
                             correctingMovement = Movement;
                             CheckCameraCollision(position, Movement, depth + 1);
                             return true;

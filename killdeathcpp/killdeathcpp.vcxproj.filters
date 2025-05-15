@@ -65,6 +65,12 @@
     <ClInclude Include="Geometry3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="gravity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectParams.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

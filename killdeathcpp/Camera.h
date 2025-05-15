@@ -7,11 +7,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "object.h"
 
+
 enum Camera_Movement {
     FORWARD,
     BACKWARD,
     LEFT,
-    RIGHT
+    RIGHT,
+    UP,
+    DOWN
 };
 
 const float YAW = -90.0f;
@@ -19,6 +22,9 @@ const float PITCH = 0.0f;
 const float SPEED = 2.5f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
+const int JUMPHEIGHT = 4;
+const float GRAVITY = 1.0f;
+const float SMASHSPEED = 3.0f;
 
 class Camera
 {
@@ -30,15 +36,15 @@ public:
     glm::vec3 Right;
     glm::vec3 WorldUp;
 
-
     float Yaw;
     float Pitch;
 
+    int JumpHeight;
     float MovementSpeed;
     float MouseSensitivity;
     float Zoom;
 
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM), JumpHeight(JUMPHEIGHT)
     {
         position = position;
         WorldUp = up;
@@ -75,12 +81,18 @@ public:
         if (direction == RIGHT)
             position += Right * velocity;
             movement = Right * velocity;
-        position.y = 0.0f;
-
+        if (direction == UP)
+            position.y += JumpHeight * velocity;
+            movement.y = JumpHeight * velocity;
+        if (direction == DOWN)
+            position.y -= velocity * SMASHSPEED;
+            movement.y = velocity * SMASHSPEED;
     }
 
-    void Colissionresponse() {
-
+    void applyGravity(float deltaTime) {
+        float fallVelocity = GRAVITY * deltaTime;
+        if (position.y > 0)
+            position.y -= fallVelocity;
     }
 
     void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)

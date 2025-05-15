@@ -3,13 +3,14 @@
 #include "soundEngine.h"
 #include "Object.h"
 #include "Camera.h"
-
+#include "ObjectParams.h"
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 bool firstMouse = true;
 float lastX = C_RES_WIDTH / 2.0;
 float lastY = C_RES_HEIGHT / 2.0;
+float bounceSmoothener = 0.2f;
 Camera camera;
 
 void errorCallback(int error, const char* description) {
@@ -46,7 +47,7 @@ int main(int argc, char* argv[]){
     glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-
+    
     Renderer renderer(window);
     //soundEngine sEngine;
     //sEngine.initialize();
@@ -56,93 +57,26 @@ int main(int argc, char* argv[]){
     GLuint backgroundTexture = renderer.create2DBitMapTexture("..\\assets\\background.bmp");
 
     renderer.loadAllShaders();
-    float line[]{
-        -0.3f, -0.3f,  0.0f,
-        0.3f, 0.3f,  0.0f
-    };
-
-    std::vector<glm::vec3> cubePos = {
-        {0.0f, -0.25f, 0.5f}, {0.5f, -0.25f, 0.5f}, {0.5f, 0.25f,  0.5f}, {0.0f, 0.25f, 0.5f},
-        {0.0f, -0.25f, 0.0f}, {0.5f, -0.25f, 0.0f}, {0.5f, 0.25f, 0.0f}, {0.0f, 0.25f, 0.0f}
-    };
-
-    std::vector<glm::vec2> texCoords = {
-        {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f},
-        {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}
-    };
-
-    std::vector<glm::vec3> normals(8, { 0.0f, 0.0f, 0.0f });
-
-    std::vector<unsigned int> cubeIndices = {
-        0, 1, 2,  2, 3, 0,
-        6, 5, 4,  4, 7, 6,
-        4, 0, 3,  3, 7, 4,
-        1, 5, 6,  6, 2, 1,
-        3, 2, 6,  6, 7, 3,
-        4, 5, 1,  1, 0, 4
-    };
+    
 
     std::vector<Vertex> cubeVertices;
-
+    cubeVertices.reserve(cubePos.size());
     for (size_t i = 0; i < cubePos.size(); ++i) {
-        Vertex vertex;
-        vertex.position = cubePos[i];
-        vertex.normal = normals[i];
-        vertex.texCoords = texCoords[i];
-        cubeVertices.push_back(vertex);
+        cubeVertices.emplace_back(cubePos[i], normals[i], texCoords[i]);
     }
 
-    Vertex vertex3;
-    vertex3.position = glm::vec3(1.0f, -1.0f, 0.0f);
-    vertex3.normal = glm::vec3(1.0f, 0.0f, 0.0f);
-    vertex3.texCoords = glm::vec2(0.0f, 0.0f);
-    Vertex vertex32;
-    vertex32.position = glm::vec3(1.0f, 1.0f, 0.8f);
-    vertex32.normal = glm::vec3(0.0f, 1.0f, 0.0f);
-    vertex32.texCoords = glm::vec2(0.0f, 0.0f);
-    Vertex vertex33;
-    vertex33.position = glm::vec3(-1.0f, 1.0f, 0.0f);
-    vertex33.normal = glm::vec3(0.0f, 0.0f, 1.0f);
-    vertex33.texCoords = glm::vec2(0.0f, 0.0f);
-    Vertex vertex34;
-    vertex34.position = glm::vec3(-1.0f, -1.0f, 0.0f);
-    vertex34.normal = glm::vec3(1.0f, 1.0f, 0.0f);
-    vertex34.texCoords = glm::vec2(0.0f, 0.0f);
-    std::vector<Vertex> guadVertices;
-    guadVertices.push_back(vertex3);
-    guadVertices.push_back(vertex32);
-    guadVertices.push_back(vertex33);
-    guadVertices.push_back(vertex34);
-
-    std::vector<GLuint> guadIndices{
-        0, 1, 2,
-        0, 2, 3
-    };
-
-    Vertex vertex1;
-    vertex1.position = glm::vec3(0.0f, 0.5f, 0.0f);
-    vertex1.normal = glm::vec3(1.0f, 0.0f, 0.0f);
-    vertex1.texCoords = glm::vec2(0.0f, 0.0f);
-    Vertex vertex12;
-    vertex12.position = glm::vec3(0.5f, -0.5f, 0.8f);
-    vertex12.normal = glm::vec3(0.0f, 1.0f, 0.0f);
-    vertex12.texCoords = glm::vec2(0.0f, 0.0f);
-    Vertex vertex13;
-    vertex13.position = glm::vec3(-0.5f, -0.5f, 0.0f);
-    vertex13.normal = glm::vec3(0.0f, 0.0f, 1.0f);
-    vertex13.texCoords = glm::vec2(0.0f, 0.0f);
-    std::vector<Vertex> triangleVertices;
-    triangleVertices.push_back(vertex1);
-    triangleVertices.push_back(vertex12);
-    triangleVertices.push_back(vertex13);
-
+    std::vector<Vertex> quadVertices;
+    quadVertices.reserve(quadPos.size());
+    for (size_t i = 0; i < quadPos.size(); ++i) {
+        quadVertices.emplace_back(quadPos[i], quadNormals[i], quadTexCoords[i]);
+    }
 
     //Object triangleObject(triangleVertices, 3, renderer.shaders["triangle"], 0);
-    Object guadObject(guadVertices, 6, renderer.shaders["guad"], 0, guadIndices);
-    Object background2dObject(guadVertices, 6, renderer.shaders["guadtexture"], backgroundTexture, guadIndices);
+    Object quadObject(quadVertices, 6, renderer.shaders["guad3d"], 0, quadIndices);
+    Object background2dObject(quadVertices, 6, renderer.shaders["guadtexture"], backgroundTexture, quadIndices);
     Object cubeObject(cubeVertices, 36, renderer.shaders["guad3d"], backgroundTexture, cubeIndices);
     std::vector<Object> objects;
-    objects.push_back(guadObject);
+    objects.push_back(quadObject);
     objects.push_back(background2dObject);
     objects.push_back(cubeObject);
 
@@ -152,15 +86,19 @@ int main(int argc, char* argv[]){
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        processKeyboard(window);
-        cubeObject.make3DSquare();
-        cubeObject.changeView(camera.GetViewMatrix());
-        renderer.drawObject(cubeObject);
-        if (cubeObject.hitbox.CheckCameraCollision(camera.position, camera.movement)) {
-            //std::cout << "camera offest: " << cubeObject.hitbox.correctingMovement << std::endl;
-            //std::cout << "camera.position: " << camera.position<< std::endl;
-            camera.position -= camera.movement - cubeObject.hitbox.correctingMovement*0.2f;
+        processKeyboard(window);      
+        cubeObject.make3DSquare(); 
+
+        for (auto obj : objects) {
+            obj.changeView(camera.GetViewMatrix());
+            renderer.drawObject(obj);
+            if (obj.hitbox.CheckCameraCollision(camera.position, camera.movement)) {
+                camera.position -= camera.movement - obj.hitbox.correctingMovement * bounceSmoothener;
+            }
+
         }
+        camera.applyGravity(deltaTime);
+        
         //printf("return of collission %d \n",cubeObject.hitbox.CheckCameraCollision(camera.position, camera.movement));     
         //std::cout<<cubeObject.hitbox.checkAllPointsInTriangles(camera.position);
         glfwPollEvents();
@@ -212,6 +150,14 @@ void processKeyboard(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
         //std::cout << "right";
         camera.ProcessKeyboard(RIGHT, deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        //std::cout << "up";
+        camera.ProcessKeyboard(UP, deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+        //std::cout << "up";
+        camera.ProcessKeyboard(DOWN, deltaTime);
     }
 }
 
