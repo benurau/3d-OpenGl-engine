@@ -1,4 +1,7 @@
-#pragma once
+#ifndef MISC_H
+#define MISC_H
+
+
 #include <windows.h>
 
 
@@ -12,8 +15,7 @@
 
 #define SWORD_WIDTH (C_RES_WIDTH / 50)
 #define SWORD_LENGTH (C_RES_HEIGHT * 0.8)
-
-
+#define RADIUS 0.15f
 
 typedef struct PIXEL32 {
 	unsigned char Blue;
@@ -23,3 +25,4 @@ typedef struct PIXEL32 {
 } PIXEL32;
 
 
+#endif

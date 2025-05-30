@@ -92,25 +92,20 @@ void Object::bindAlltoVao(std::vector<Vertex>vertices) {
     bindToVao(vbo, 2, 2, sizeof(Vertex), offsetof(Vertex, texCoords));
 }
 
-void Object::rotate(float degrees, glm::vec3 axises) {
-    glm::mat4 trans = glm::mat4(1.0f);
-    trans = glm::rotate(trans, glm::radians(degrees), axises);
-    this->shader.setMat4("model", trans);
-    hitbox.setModelMatrix(trans);
+void Object::rotate(const glm::vec3& angleDelta) {
+    rotation += angleDelta;
+    updateModelMatrix();
 }
 
-void Object::changeSize(glm::vec3 scale) {
-    glm::mat4 trans = glm::mat4(1.0f);
-    trans = glm::scale(trans, scale);
-    this->shader.setMat4("model", trans);
-    hitbox.setModelMatrix(trans);
+void Object::changeSize(const glm::vec3& scaleFactor) {
+    scale += scaleFactor;
+    updateModelMatrix();
 }
 
-void Object::movePos(glm::vec3 position) {
-    glm::mat4 trans = glm::mat4(1.0f);
-    trans = glm::translate(trans, position);
-    this->shader.setMat4("model", trans);
-    hitbox.setModelMatrix(trans);
+void Object::movePos(const glm::vec3& delta) {
+    std::cout << delta.y;
+    position += delta;
+    updateModelMatrix();
 }
 
 void Object::changeView(glm::vec3 position) {
@@ -132,18 +127,28 @@ void Object::changePerspective(float degrees) {
     hitbox.setProjectionMatrix(proj);
 }
 
-void Object::make3DSquare() {
-    rotate(1.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-    changePerspective(45.0f);
-    //rotate((float)glfwGetTime() * 50.0f, glm::vec3(0.5f, 1.0f, 0.0f));
-}
 
 void Object::setDefault() {
-    changeView(glm::mat4());
-    changePerspective(0);
+    shader.use();
+    position = glm::vec3(0.0f);
+    rotation = glm::vec3(0.0f);
+    scale = glm::vec3(1.0f);
+    updateModelMatrix();
     changePerspective(45.0f);
-    changeSize(glm::vec3());
 }
+
+void Object::updateModelMatrix() {
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::translate(trans, position);
+    trans = glm::rotate(trans, glm::radians(rotation.x), glm::vec3(1, 0, 0));
+    trans = glm::rotate(trans, glm::radians(rotation.y), glm::vec3(0, 1, 0));
+    trans = glm::rotate(trans, glm::radians(rotation.z), glm::vec3(0, 0, 1));
+    trans = glm::scale(trans, scale);
+    modelMatrix = trans;
+    shader.setMat4("model", modelMatrix);
+    hitbox.setModelMatrix(modelMatrix);
+}
+
 
 void Object::Destroy() {
     this->hitbox.Destroy();

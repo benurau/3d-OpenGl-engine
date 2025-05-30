@@ -1,4 +1,7 @@
-#pragma once
+#ifndef RENDERER_H
+#define RENDERER_H
+
+
 #include "misc.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -31,7 +34,7 @@ public:
     void loadAllShaders();
 
     void drawLine(Object object);
-    void drawObject(Object object);
+    void drawObject(Object& object);
 
     void clear();
     void swapBuffers();
@@ -42,3 +45,4 @@ public:
 private:
     GLFWwindow* window;
 };
+#endif

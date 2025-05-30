@@ -33,6 +33,12 @@
     <ClCompile Include="Object.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Colissions.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Colissions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Renderer.h">
@@ -63,9 +69,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Geometry3D.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gravity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ObjectParams.h">

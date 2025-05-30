@@ -1,4 +1,8 @@
-#pragma once
+#ifndef OBJECTPARAMS_H
+#define OBJECTPARAMS_H
+
+
+
 float line[]{
         -0.3f, -0.3f,  0.0f,
         0.3f, 0.3f,  0.0f
@@ -51,3 +55,4 @@ std::vector<Vertex> triangleVertices = {
     { { 0.5f, -0.5f, 0.8f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f} },
     { {-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f} }
 };
+#endif

@@ -1,6 +1,6 @@
 #ifndef CAMERA_H
 #define CAMERA_H
-#define RADIUS 0.15625f
+
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -22,9 +22,9 @@ const float PITCH = 0.0f;
 const float SPEED = 2.5f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
-const int JUMPHEIGHT = 4;
-const float GRAVITY = 1.0f;
-const float SMASHSPEED = 3.0f;
+const float JUMPHEIGHT = 1.0f;
+const float GRAVITY = -0.5f;
+const float SMASHSPEED = -1.0f;
 
 class Camera
 {
@@ -39,12 +39,14 @@ public:
     float Yaw;
     float Pitch;
 
-    int JumpHeight;
+    float JumpHeight;
+    bool airborne;
+    float verticalVelocity;
     float MovementSpeed;
     float MouseSensitivity;
     float Zoom;
 
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM), JumpHeight(JUMPHEIGHT)
+    Camera(glm::vec3 position = glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM), JumpHeight(JUMPHEIGHT)
     {
         position = position;
         WorldUp = up;
@@ -69,30 +71,50 @@ public:
     void ProcessKeyboard(Camera_Movement direction, float deltaTime)
     {
         float velocity = MovementSpeed * deltaTime;
+        glm::vec3 flatFront = glm::normalize(glm::vec3(Front.x, 0.0f, Front.z));
+        
         if (direction == FORWARD)
-            position += Front * velocity;
-            movement = Front * velocity;
+        {
+            movement += flatFront * velocity;
+        }
         if (direction == BACKWARD)
-            position -= Front * velocity;
-            movement = -Front * velocity;
+        {
+            movement += -flatFront * velocity;
+        }
         if (direction == LEFT)
-            position -= Right * velocity;
-            movement = -Right * velocity;
+        {
+            movement += -Right * velocity;
+        }
         if (direction == RIGHT)
-            position += Right * velocity;
-            movement = Right * velocity;
-        if (direction == UP)
-            position.y += JumpHeight * velocity;
-            movement.y = JumpHeight * velocity;
-        if (direction == DOWN)
-            position.y -= velocity * SMASHSPEED;
-            movement.y = velocity * SMASHSPEED;
+        {
+            movement += Right * velocity;
+        }
+        if (direction == UP && !airborne)
+        {
+            verticalVelocity = JumpHeight;
+        }
+        if (direction == DOWN && airborne)
+        {
+            verticalVelocity = SMASHSPEED;;
+        }
     }
 
+
     void applyGravity(float deltaTime) {
-        float fallVelocity = GRAVITY * deltaTime;
-        if (position.y > 0)
-            position.y -= fallVelocity;
+        if (airborne) verticalVelocity += GRAVITY * deltaTime;
+        movement.y = verticalVelocity * deltaTime;           
+    }
+
+    bool isGrounded(const HitBox box) {
+        glm::vec3 camBottom = position;
+        float groundThreshold = 0.2f;
+        if (camBottom.x >= box.min.x && camBottom.x <= box.max.x &&
+            camBottom.z >= box.min.z && camBottom.z <= box.max.z &&
+            camBottom.y+0.15f >= box.max.y && camBottom.y+0.15f <= box.max.y + groundThreshold)
+        {           
+            return true;
+        }     
+        return false;
     }
 
     void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
@@ -101,7 +123,6 @@ public:
         yoffset *= MouseSensitivity;
         Yaw += xoffset;
         Pitch += yoffset;
-
         if (constrainPitch)
         {
             if (Pitch > 89.0f)

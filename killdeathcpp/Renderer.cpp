@@ -53,10 +53,9 @@ GLuint Renderer::create2DBitMapTexture(const char* filepath) {
 
 void Renderer::loadAllShaders() {
     shaders["triangle"] = Shader("..\\shaders\\triangle_vs.txt", "..\\shaders\\rainbow_fs.txt");
-    shaders["guad"] = Shader("..\\shaders\\guad_vs.txt", "..\\shaders\\rainbow_fs.txt");
+    shaders["quad"] = Shader("..\\shaders\\quad_vs.txt", "..\\shaders\\quad_fs.txt");
     shaders["line"] = Shader("..\\shaders\\line_vs.txt", "..\\shaders\\line_fs.txt");
-    shaders["guadtexture"] = Shader("..\\shaders\\background_vs.txt", "..\\shaders\\background_fs.txt");
-    shaders["guad3d"] = Shader("..\\shaders\\guad3d_vs.txt", "..\\shaders\\guad3d_fs.txt");
+    shaders["quad3d"] = Shader("..\\shaders\\quad3d_vs.txt", "..\\shaders\\quad3d_fs.txt");
 }
 
 void Renderer::drawLine(Object object) {
@@ -87,12 +86,13 @@ void Renderer::drawLine(Object object) {
 //    drawLine(vao , shader , newPoints, size);
 //}
 
-void Renderer::drawObject(Object object) {
+void Renderer::drawObject(Object& object) {
     //std::cout << object.shader.ID<< "id \n";
     //std::cout << object.vao<< "vao \n";
     //std::cout << object.textureID<< "textureID \n";
     //std::cout << object.totalVerticles << "verticles\n";
     object.shader.use();
+    object.shader.setMat4("model", object.modelMatrix);
     if (object.textureID > 0) {
         //std::cout << "texture";
         glActiveTexture(GL_TEXTURE0);

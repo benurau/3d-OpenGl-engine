@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GEOMETRY3D_H
+#define GEOMETRY3D_H
 #include <glm/glm.hpp>
 
 struct Vertex {
@@ -35,3 +36,5 @@ public:
     float EdgeLength[3], D[4];
     bool close;
 };
+
+#endif

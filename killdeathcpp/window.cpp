@@ -4,13 +4,14 @@
 #include "Object.h"
 #include "Camera.h"
 #include "ObjectParams.h"
+#include "Colissions.h"
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 bool firstMouse = true;
 float lastX = C_RES_WIDTH / 2.0;
 float lastY = C_RES_HEIGHT / 2.0;
-float bounceSmoothener = 0.2f;
+float bounceSmoothener = 0.01f;
 Camera camera;
 
 void errorCallback(int error, const char* description) {
@@ -46,8 +47,6 @@ int main(int argc, char* argv[]){
     }
     glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    
     Renderer renderer(window);
     //soundEngine sEngine;
     //sEngine.initialize();
@@ -55,7 +54,6 @@ int main(int argc, char* argv[]){
     //SDL_AudioDeviceID aDevice = sEngine.openAudioDevice(huh);
     GLuint monsterTexture = renderer.create2DBitMapTexture("..\\assets\\monster1.bmp");
     GLuint backgroundTexture = renderer.create2DBitMapTexture("..\\assets\\background.bmp");
-
     renderer.loadAllShaders();
     
 
@@ -70,35 +68,51 @@ int main(int argc, char* argv[]){
     for (size_t i = 0; i < quadPos.size(); ++i) {
         quadVertices.emplace_back(quadPos[i], quadNormals[i], quadTexCoords[i]);
     }
-
-    //Object triangleObject(triangleVertices, 3, renderer.shaders["triangle"], 0);
-    Object quadObject(quadVertices, 6, renderer.shaders["guad3d"], 0, quadIndices);
-    Object background2dObject(quadVertices, 6, renderer.shaders["guadtexture"], backgroundTexture, quadIndices);
-    Object cubeObject(cubeVertices, 36, renderer.shaders["guad3d"], backgroundTexture, cubeIndices);
-    std::vector<Object> objects;
-    objects.push_back(quadObject);
-    objects.push_back(background2dObject);
-    objects.push_back(cubeObject);
-
     glEnable(GL_DEPTH_TEST);
+    //Object triangleObject(triangleVertices, 3, renderer.shaders["triangle"], 0);
+    Object floor(cubeVertices, 36, renderer.shaders["quad3d"], backgroundTexture, cubeIndices);
+    Object cubeObject(cubeVertices, 36, renderer.shaders["quad3d"], backgroundTexture, cubeIndices);
+    std::vector<Object> objects;
+    objects.push_back(cubeObject);
+    objects.push_back(floor);
+    objects[1].changeSize(glm::vec3(100.0f, 0.0f, 100.0f));
+    objects[1].movePos(glm::vec3(-1.0f, -1.0f, -1.0f));
+    objects[0].movePos(glm::vec3(1.0f, -0.5f, 1.0f));
+
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        processKeyboard(window);      
-        cubeObject.make3DSquare(); 
+        processKeyboard(window); 
+        bool grounded = false;      
+        bool collided = false;
+        glm::vec3 originalMovement = camera.movement;
 
-        for (auto obj : objects) {
+        for (Object obj : objects) {
+            grounded |= camera.isGrounded(obj.hitbox);
             obj.changeView(camera.GetViewMatrix());
-            renderer.drawObject(obj);
-            if (obj.hitbox.CheckCameraCollision(camera.position, camera.movement)) {
-                camera.position -= camera.movement - obj.hitbox.correctingMovement * bounceSmoothener;
+            renderer.drawObject(obj);              
+            if (Point_Box_Colission(obj.hitbox, camera.position, camera.movement)) {
+                collided = true;
             }
-
         }
+        if (collided) {
+            camera.position += camera.movement;
+        }
+        else {
+            camera.position += originalMovement;
+        }
+
+        if (grounded) {
+            camera.movement = glm::vec3(0.0f);
+        }
+
+
+        printf("\n");
+        camera.movement = glm::vec3(0.0f);
+        camera.airborne = !grounded;
         camera.applyGravity(deltaTime);
-        
         //printf("return of collission %d \n",cubeObject.hitbox.CheckCameraCollision(camera.position, camera.movement));     
         //std::cout<<cubeObject.hitbox.checkAllPointsInTriangles(camera.position);
         glfwPollEvents();
