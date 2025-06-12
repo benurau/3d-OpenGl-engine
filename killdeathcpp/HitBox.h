@@ -1,12 +1,11 @@
 #ifndef HITBOX_H
 #define HITBOX_H
 
-
-
-
 #include "Geometry3D.h"
-#include "shader.h"
 #include "misc.h"
+#include <glad/glad.h>
+#include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 
 struct AABB {
     glm::vec3 min;

@@ -1,6 +1,7 @@
 #ifndef GEOMETRY3D_H
 #define GEOMETRY3D_H
 #include <glm/glm.hpp>
+#include <string>
 
 struct Vertex {
     glm::vec3 position;
@@ -16,6 +17,10 @@ struct Vertex {
     }
 };
 
+struct Texture {
+    unsigned int id;
+    std::string type;
+};
 
 struct Triangle {
     glm::vec3 a;

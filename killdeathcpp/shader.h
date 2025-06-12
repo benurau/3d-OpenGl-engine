@@ -7,6 +7,9 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include "openglHelpers.h"
+
+
 
 class Shader
 {
@@ -66,6 +69,7 @@ public:
         glAttachShader(ID, fragment);
         glLinkProgram(ID);
         checkCompileErrors(ID, "PROGRAM");
+        PrintActiveUniforms(ID);
         // delete the shaders as they're linked into our program now and no longer necessary
         glDeleteShader(vertex);
         glDeleteShader(fragment);
@@ -74,7 +78,12 @@ public:
     // ------------------------------------------------------------------------
     void use()
     {
+        if (ID == 0) {
+            std::cerr << "[Shader::use] ERROR: Shader ID is 0, cannot use program." << std::endl;
+            return;
+        }
         glUseProgram(ID);
+        checkGLError("shader use in shader .h");
     }
     // utility uniform functions
     // ------------------------------------------------------------------------
@@ -92,9 +101,17 @@ public:
     {
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
     }
-    void setMat4(const GLchar* name, glm::mat4 trans) const
-    {
-        glUniformMatrix4fv(glGetUniformLocation(ID, name), 1, GL_FALSE, glm::value_ptr(trans));
+    void setVec3(const std::string& name, const glm::vec3& value) const {
+        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+    }
+    void setMat4(const std::string& name, const glm::mat4& mat) const {
+        GLint loc = glGetUniformLocation(ID, name.c_str());
+        if (loc != -1) {
+            glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mat));
+        }
+        else {
+            std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
+        }
     }
     glm::mat4 getMat4(const GLchar* name) {
         return glGetUniformLocation(ID, name);
@@ -103,17 +120,20 @@ public:
 private:
     // utility function for checking shader compilation/linking errors.
     // ------------------------------------------------------------------------
-    void checkCompileErrors(unsigned int shader, std::string type)
+    void checkCompileErrors(GLuint shader, const std::string& type)
     {
-        int success;
-        char infoLog[1024];
+        GLint success;
+        GLchar infoLog[1024];
+
         if (type != "PROGRAM")
         {
             glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
             if (!success)
             {
                 glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-                std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                std::cerr << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n"
+                    << infoLog << "\n -- --------------------------------------------------- -- "
+                    << std::endl;
             }
         }
         else
@@ -122,9 +142,37 @@ private:
             if (!success)
             {
                 glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-                std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                std::cerr << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n"
+                    << infoLog << "\n -- --------------------------------------------------- -- "
+                    << std::endl;
             }
         }
     }
+
+    void PrintActiveUniforms(GLuint program) {
+        GLint numUniforms = 0;
+        glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &numUniforms);
+
+        std::cout << "=== Active Uniforms ===\n";
+
+        for (int i = 0; i < numUniforms; ++i) {
+            char name[256];
+            GLsizei length;
+            GLint size;
+            GLenum type;
+
+            glGetActiveUniform(program, i, sizeof(name), &length, &size, &type, name);
+
+            GLint location = glGetUniformLocation(program, name);
+            std::cout << "Uniform #" << i << ": " << name << ", Location: " << location << ", Type: " << type << "\n";
+
+            if (location == -1) {
+                std::cout << "   Warning: Uniform " << name << " is not active or optimized out.\n";
+            }
+        }
+
+        std::cout << "========================\n";
+    }
+
 };
 #endif

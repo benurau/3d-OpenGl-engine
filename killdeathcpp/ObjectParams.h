@@ -18,7 +18,17 @@ std::vector<glm::vec2> texCoords = {
     {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}
 };
 
-std::vector<glm::vec3> normals(8, { 0.0f, 0.0f, 0.0f });
+
+std::vector<glm::vec3> normals = {
+    { -1.0f, -1.0f,  1.0f },
+    {  1.0f, -1.0f,  1.0f },
+    {  1.0f,  1.0f,  1.0f },
+    { -1.0f,  1.0f,  1.0f },
+    { -1.0f, -1.0f, -1.0f },
+    {  1.0f, -1.0f, -1.0f },
+    {  1.0f,  1.0f, -1.0f },
+    { -1.0f,  1.0f, -1.0f }
+};
 
 std::vector<unsigned int> cubeIndices = {
     0, 1, 2,  2, 3, 0,

@@ -11,7 +11,6 @@ float lastFrame = 0.0f;
 bool firstMouse = true;
 float lastX = C_RES_WIDTH / 2.0;
 float lastY = C_RES_HEIGHT / 2.0;
-float bounceSmoothener = 0.01f;
 Camera camera;
 
 void errorCallback(int error, const char* description) {
@@ -52,10 +51,22 @@ int main(int argc, char* argv[]){
     //sEngine.initialize();
     //WAV huh = sEngine.loadWavFile("..\\assets\\ahem_x.wav", "ahem");
     //SDL_AudioDeviceID aDevice = sEngine.openAudioDevice(huh);
-    GLuint monsterTexture = renderer.create2DBitMapTexture("..\\assets\\monster1.bmp");
-    GLuint backgroundTexture = renderer.create2DBitMapTexture("..\\assets\\background.bmp");
-    renderer.loadAllShaders();
+    GLuint monster = create2DBitMapTexture("..\\assets\\monster1.bmp");
+    GLuint background = create2DBitMapTexture("..\\assets\\background.bmp");
+
+    std::unordered_map <std::string, Shader> shaders;
+    shaders["quad3d"] = Shader("..\\shaders\\quad3d.vs", "..\\shaders\\quad3d.fs");
+    shaders["lightcube"] = Shader("..\\shaders\\lightcube.vs", "..\\shaders\\lightcube.fs");
+    shaders["basiclighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\basiclighting.fs");
+
+    std::vector<Texture> floorTextures;
+    floorTextures.push_back({ monster, "texture_diffuse" });
+    //floorTextures.push_back({ specularTexture, "texture_specular" });
+
+    std::vector<Texture> cubeTextures;
+    cubeTextures.push_back({ background, "texture_diffuse" });
     
+    std::vector<Texture> emptyTextures;
 
     std::vector<Vertex> cubeVertices;
     cubeVertices.reserve(cubePos.size());
@@ -69,31 +80,51 @@ int main(int argc, char* argv[]){
         quadVertices.emplace_back(quadPos[i], quadNormals[i], quadTexCoords[i]);
     }
     glEnable(GL_DEPTH_TEST);
-    //Object triangleObject(triangleVertices, 3, renderer.shaders["triangle"], 0);
-    Object floor(cubeVertices, 36, renderer.shaders["quad3d"], backgroundTexture, cubeIndices);
-    Object cubeObject(cubeVertices, 36, renderer.shaders["quad3d"], backgroundTexture, cubeIndices);
-    std::vector<Object> objects;
-    objects.push_back(cubeObject);
-    objects.push_back(floor);
-    objects[1].changeSize(glm::vec3(100.0f, 0.0f, 100.0f));
-    objects[1].movePos(glm::vec3(-1.0f, -1.0f, -1.0f));
-    objects[0].movePos(glm::vec3(1.0f, -0.5f, 1.0f));
+    Object floor(cubeVertices, 36, shaders["quad3d"], cubeTextures, cubeIndices);
+    Object cubeObject(cubeVertices, 36, shaders["quad3d"], floorTextures, cubeIndices);
+    Object lightingCube(cubeVertices, 36, shaders["quad3d"], emptyTextures, cubeIndices);
+	Object basicLightingObject(cubeVertices, 36, shaders["basiclighting"], emptyTextures, cubeIndices);
+	
+    Light pointLight;
+    pointLight.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
+    pointLight.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
+    pointLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+
+    std::vector<Object*> objects;
+    objects.push_back(&cubeObject);
+    objects.push_back(&floor);
+    objects.push_back(&lightingCube);
+	objects.push_back(&basicLightingObject);
+
+    floor.changeSize(glm::vec3(100.0f, 0.0f, 100.0f));
+    floor.movePos(glm::vec3(-1.0f, -1.0f, -1.0f));
+    cubeObject.movePos(glm::vec3(1.0f, -0.5f, 1.0f));
+    lightingCube.movePos(glm::vec3(2.0f, -0.5f, 1.0f));
+    basicLightingObject.movePos(glm::vec3(1.0f, -0.5f, 3.0f));
+
+    shaders["basiclighting"].use();
+    shaders["basiclighting"].setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
+    shaders["basiclighting"].setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+    shaders["basiclighting"].setVec3("lightPos", glm::vec3(1.0f, 0.5f, 1.0f));
+    shaders["basiclighting"].setVec3("viewPos", camera.position);
 
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         processKeyboard(window); 
         bool grounded = false;      
         bool collided = false;
-        glm::vec3 originalMovement = camera.movement;
+        glm::vec3 originalMovement = camera.movement;    
+        
+        for (Object *obj : objects) {
+            grounded |= camera.isGrounded(obj->hitbox);         
+            obj->changeView(camera.GetViewMatrix());
+            obj->draw();        
 
-        for (Object obj : objects) {
-            grounded |= camera.isGrounded(obj.hitbox);
-            obj.changeView(camera.GetViewMatrix());
-            renderer.drawObject(obj);              
-            if (Point_Box_Colission(obj.hitbox, camera.position, camera.movement)) {
+            if (point_Box_Colission(obj->hitbox, camera.position, camera.movement)) {
                 collided = true;
             }
         }
@@ -108,19 +139,15 @@ int main(int argc, char* argv[]){
             camera.movement = glm::vec3(0.0f);
         }
 
-
-        printf("\n");
         camera.movement = glm::vec3(0.0f);
         camera.airborne = !grounded;
         camera.applyGravity(deltaTime);
-        //printf("return of collission %d \n",cubeObject.hitbox.CheckCameraCollision(camera.position, camera.movement));     
-        //std::cout<<cubeObject.hitbox.checkAllPointsInTriangles(camera.position);
         glfwPollEvents();
         glfwSwapBuffers(window);
     }
 
-    for (Object i : objects) {
-        i.Destroy();
+    for (Object* i : objects) {
+        i->Destroy();
     }
     //sEngine.audioCleanup(huh, aDevice);
     glfwTerminate();

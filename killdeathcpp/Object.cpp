@@ -1,96 +1,130 @@
 #include "Object.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "misc.h"
-
-GLenum glCheckError_(const char* file, int line)
-{
-    GLenum errorCode;
-    while ((errorCode = glGetError()) != GL_NO_ERROR)
-    {
-        std::string error;
-        switch (errorCode)
-        {
-        case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
-        case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
-        case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
-        case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
-        case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
-        case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
-        case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
-        }
-        std::cout << error << " | " << file << " (" << line << ")" << std::endl;
-    }
-    return errorCode;
-}
-#define glCheckError() glCheckError_(__FILE__, __LINE__) 
+#include "openglHelpers.h"
 
 
-GLuint generateVBO(std::vector<Vertex>vertices) {
-    //assert(size > 0, "generateVBo with empty verticle array");
-    GLuint vbo = 0;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
-    glCheckError();
-    return vbo;
-}
 
-GLuint generateVAO() {
-    GLuint vao = 0;
-    glGenVertexArrays(1, &vao);
-    glCheckError();
-    return vao;
-}
-
-GLuint generateIBO(std::vector<GLuint> indices) {
-    assert(indices.size() > 0, "objectconstructor3 indices");
-    GLuint IBO = 0;
-    glGenBuffers(1, &IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(int), &indices[0], GL_DYNAMIC_DRAW);
-    glCheckError();
-    return IBO;
-}
-
-//Object::Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID) {
-//    this->vao = generateVAO();
-//    assert(shader.ID > 0, "objectconstructor1 shader");
-//    assert(totalVerticles > 0, "objectconstructor1 totalVerticles");
-//    this->shader = shader;
-//    this->textureID = textureID;
-//    this->ibo = 0;
-//    this->totalVerticles = totalVerticles;
-//    bindAlltoVao(vertices);
-//}
-
-Object::Object(std::vector<Vertex>vertices, int totalVerticles, Shader shader, int textureID, std::vector<GLuint> indices) {
+Object::Object(const std::vector<Vertex>& vertices, const int& totalVerticles, const Shader& shader, const std::vector<Texture>& textures, const std::vector<GLuint>& indices) {
     this->vao = generateVAO();
-    assert(shader.ID > 0, "objectconstructor2 shader");
-    assert(totalVerticles > 0, "objectconstructor2 totalVerticles");
+    assert(shader.ID > 0, "objectconstructor shader");
+    assert(totalVerticles > 0, "objectconstructor totalVerticles");
     this->shader = shader;
-    this->textureID = textureID;
+    this->textures = textures;
     this->totalVerticles = totalVerticles;
+    this->indices = indices;
     this->hitbox = HitBox(vertices, indices);
     this->ibo = generateIBO(indices);
     bindAlltoVao(vertices);
     setDefault();
 }
 
-void Object::bindToVao(GLuint vbo, int vertexArray, int vecSize, int stride, int offset) {
-    glBindVertexArray(this->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(vertexArray, vecSize, GL_FLOAT, GL_FALSE, stride, (void*)offset);
-    glEnableVertexAttribArray(vertexArray);
-    glCheckError();
-}
 
 void Object::bindAlltoVao(std::vector<Vertex>vertices) {
     GLfloat vbo = generateVBO(vertices);
-    bindToVao(vbo, 0, 3, sizeof(Vertex), 0);
-    bindToVao(vbo, 1, 3, sizeof(Vertex), offsetof(Vertex, normal));
-    bindToVao(vbo, 2, 2, sizeof(Vertex), offsetof(Vertex, texCoords));
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    int loc = 0;
+    loc = glGetAttribLocation(shader.ID, "aPos");
+    if (loc != -1) {
+        bindToVao(vao, loc, 0, 3, sizeof(Vertex), 0);
+    }
+    loc = glGetAttribLocation(shader.ID, "aNormal");
+    if (loc != -1) {
+        bindToVao(vao, loc, 1, 3, sizeof(Vertex), offsetof(Vertex, normal));
+    }
+    loc = glGetAttribLocation(shader.ID, "aTexCoord");
+    if (loc != -1) {
+        bindToVao(vao, loc, 2, 2, sizeof(Vertex), offsetof(Vertex, texCoords));
+    }
+    if (ibo > 0) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    }
+    glBindVertexArray(0);
 }
+
+void Object::draw() {
+    std::cout << "[Draw] Using shader ID: " << shader.ID << std::endl;
+    shader.use();
+    checkGLError("usingshader");
+    std::cout << "[Draw] Setting model matrix uniform." << std::endl;
+    shader.setMat4("model", modelMatrix);
+    checkGLError("setMat4(model)");
+
+    if (!textures.empty()) {
+        shader.setBool("useTexture", true);
+        std::cout << "[Draw] Binding " << textures.size() << " textures." << std::endl;
+        int diffuseNr = 1;
+        int specularNr = 1;
+
+        for (int i = 0; i < textures.size(); ++i) {
+            
+            glActiveTexture(GL_TEXTURE0 + i);
+            checkGLError("glActiveTexture");
+
+            std::string name;
+            if (textures[i].type == "texture_diffuse") {
+                name = "texture_diffuse" + std::to_string(diffuseNr++);
+            }
+            else if (textures[i].type == "texture_specular") {
+                name = "texture_specular" + std::to_string(specularNr++);
+            }
+            else {
+                std::cout << "[Draw] Unknown texture type: " << textures[i].type << std::endl;
+            }
+
+            GLint loc = glGetUniformLocation(shader.ID, name.c_str());
+            if (loc != -1) {
+                glUniform1i(loc, i);
+                checkGLError("glUniform1i " + name);
+            }
+            else {
+                std::cout << "[Warn] Uniform not found or inactive: " << name << std::endl;
+            }
+
+            glBindTexture(GL_TEXTURE_2D, textures[i].id);
+            checkGLError("glBindTexture " + name);
+        }
+    }
+    else {
+        shader.setBool("useTexture", false);
+        std::cout << "[Draw] No textures to bind." << std::endl;
+    }
+
+    std::cout << "[Draw] Binding VAO ID: " << vao << std::endl;
+    glBindVertexArray(vao);
+    checkGLError("glBindVertexArray");
+
+    if (!indices.empty()) {
+        std::cout << "[Draw] Drawing with glDrawElements, count: " << indices.size() << std::endl;
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+        checkGLError("glDrawElements");
+    }
+    else {
+        std::cout << "[Draw] Drawing with glDrawArrays, count: " << totalVerticles << std::endl;
+        glDrawArrays(GL_TRIANGLES, 0, totalVerticles);
+        checkGLError("glDrawArrays");
+    }
+
+    glBindVertexArray(0);
+    std::cout << "[Draw] Unbound VAO." << std::endl;
+    checkGLError("unboundvao");
+
+    for (int i = 0; i < static_cast<int>(textures.size()); ++i) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        std::cout << "[Draw] Unbound texture unit " << i << std::endl;
+        checkGLError("unactivatetexture");
+    }
+
+    glActiveTexture(GL_TEXTURE0);
+    checkGLError("activatetexture0");
+    std::cout << "[Draw] Reset active texture to GL_TEXTURE0." << std::endl;
+}
+
+
+
+
+
 
 void Object::rotate(const glm::vec3& angleDelta) {
     rotation += angleDelta;
@@ -111,22 +145,23 @@ void Object::movePos(const glm::vec3& delta) {
 void Object::changeView(glm::vec3 position) {
     glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, position);
+    this->shader.use();
     this->shader.setMat4("view", view);
     hitbox.setViewMatrix(view);
 }
 
 void Object::changeView(glm::mat4 view) {
+    this->shader.use();
     this->shader.setMat4("view", view);
     hitbox.setViewMatrix(view);
 }
 
 void Object::changePerspective(float degrees) {
-    glm::ortho(0.0f, (float)C_RES_WIDTH, 0.0f, (float)C_RES_HEIGHT, 0.1f, 100.0f);
     glm::mat4 proj = glm::perspective(glm::radians(degrees), (float)C_RES_WIDTH / (float)C_RES_HEIGHT, 0.1f, 100.0f);
+    this->shader.use();
     this->shader.setMat4("projection", proj);
     hitbox.setProjectionMatrix(proj);
 }
-
 
 void Object::setDefault() {
     shader.use();
@@ -135,6 +170,7 @@ void Object::setDefault() {
     scale = glm::vec3(1.0f);
     updateModelMatrix();
     changePerspective(45.0f);
+    
 }
 
 void Object::updateModelMatrix() {
@@ -148,7 +184,6 @@ void Object::updateModelMatrix() {
     shader.setMat4("model", modelMatrix);
     hitbox.setModelMatrix(modelMatrix);
 }
-
 
 void Object::Destroy() {
     this->hitbox.Destroy();

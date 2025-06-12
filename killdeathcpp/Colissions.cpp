@@ -1,6 +1,6 @@
 #include "Colissions.h"
 
-bool Point_Box_Colission(HitBox& box, glm::vec3 position, glm::vec3& Movement)
+bool point_Box_Colission(HitBox& box, glm::vec3 position, glm::vec3& Movement)
 {
     glm::vec3 newPosition = position + Movement;
     float EPSILON = 0.000001f;
@@ -98,4 +98,34 @@ bool Point_Box_Colission(HitBox& box, glm::vec3 position, glm::vec3& Movement)
 
         Triangle++;
     }
+    return false;
+}
+
+
+std::vector<glm::vec3> computeVertexNormals(
+    const std::vector<glm::vec3>& positions,
+    const std::vector<unsigned int>& indices
+) {
+    std::vector<glm::vec3> normals(positions.size(), glm::vec3(0.0f));
+
+    for (size_t i = 0; i < indices.size(); i += 3) {
+        unsigned int i0 = indices[i];
+        unsigned int i1 = indices[i + 1];
+        unsigned int i2 = indices[i + 2];
+        glm::vec3 v0 = positions[i0];
+        glm::vec3 v1 = positions[i1];
+        glm::vec3 v2 = positions[i2];
+        glm::vec3 edge1 = v1 - v0;
+        glm::vec3 edge2 = v2 - v0;
+        glm::vec3 faceNormal = glm::normalize(glm::cross(edge1, edge2));
+        normals[i0] += faceNormal;
+        normals[i1] += faceNormal;
+        normals[i2] += faceNormal;
+    }
+
+    for (auto& n : normals) {
+        n = glm::normalize(n);
+        printf("%f x %f y %f z normals after normalization \n", n.x, n.y, n.z);
+    }
+    return normals;
 }

@@ -36,6 +36,12 @@
     <ClCompile Include="Colissions.h">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="Model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="openglHelpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Colissions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -72,6 +78,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ObjectParams.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="openglHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
