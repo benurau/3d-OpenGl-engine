@@ -58,6 +58,8 @@ int main(int argc, char* argv[]){
     shaders["quad3d"] = Shader("..\\shaders\\quad3d.vs", "..\\shaders\\quad3d.fs");
     shaders["lightcube"] = Shader("..\\shaders\\lightcube.vs", "..\\shaders\\lightcube.fs");
     shaders["basiclighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\basiclighting.fs");
+    shaders["materialLighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\materialLighting.fs");
+    shaders["textureLighting"] = Shader("..\\shaders\\lightingMap.vs", "..\\shaders\\lightingMap.fs");
 
     std::vector<Texture> floorTextures;
     floorTextures.push_back({ monster, "texture_diffuse" });
@@ -84,6 +86,9 @@ int main(int argc, char* argv[]){
     Object cubeObject(cubeVertices, 36, shaders["quad3d"], floorTextures, cubeIndices);
     Object lightingCube(cubeVertices, 36, shaders["quad3d"], emptyTextures, cubeIndices);
 	Object basicLightingObject(cubeVertices, 36, shaders["basiclighting"], emptyTextures, cubeIndices);
+    Object materialLightingObject(cubeVertices, 36, shaders["materialLighting"], emptyTextures, cubeIndices);
+    Object textureLightingObject(cubeVertices, 36, shaders["textureLighting"], cubeTextures, cubeIndices);
+
 	
     Light pointLight;
     pointLight.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
@@ -94,19 +99,43 @@ int main(int argc, char* argv[]){
     objects.push_back(&cubeObject);
     objects.push_back(&floor);
     objects.push_back(&lightingCube);
-	objects.push_back(&basicLightingObject);
+	//objects.push_back(&basicLightingObject);
+    objects.push_back(&materialLightingObject);
+    objects.push_back(&textureLightingObject);
 
     floor.changeSize(glm::vec3(100.0f, 0.0f, 100.0f));
     floor.movePos(glm::vec3(-1.0f, -1.0f, -1.0f));
     cubeObject.movePos(glm::vec3(1.0f, -0.5f, 1.0f));
     lightingCube.movePos(glm::vec3(2.0f, -0.5f, 1.0f));
-    basicLightingObject.movePos(glm::vec3(1.0f, -0.5f, 3.0f));
+    basicLightingObject.movePos(glm::vec3(1.0f, -0.5f, 6.0f));
+    materialLightingObject.movePos(glm::vec3(1.0f, -0.5f, 3.0f));
+    textureLightingObject.movePos(glm::vec3(1.0f, -0.5f, 4.0f));
 
-    shaders["basiclighting"].use();
-    shaders["basiclighting"].setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
-    shaders["basiclighting"].setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-    shaders["basiclighting"].setVec3("lightPos", glm::vec3(1.0f, 0.5f, 1.0f));
-    shaders["basiclighting"].setVec3("viewPos", camera.position);
+    shaders["textureLighting"].use();
+    shaders["textureLighting"].setVec3("light.position", glm::vec3(1.0f, 0.5f, 1.0f));
+    shaders["textureLighting"].setVec3("viewPos", camera.position);
+    shaders["textureLighting"].setVec3("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
+    shaders["textureLighting"].setVec3("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+    shaders["textureLighting"].setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+    shaders["textureLighting"].setVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+    shaders["textureLighting"].setFloat("material.shininess", 32.0f);
+
+    shaders["materialLighting"].use();
+    shaders["materialLighting"].setVec3("light.position", glm::vec3(1.0f, 0.5f, 1.0f));
+    shaders["materialLighting"].setVec3("viewPos", camera.position);
+    glm::vec3 lightColor;
+    lightColor.x = static_cast<float>(sin(glfwGetTime() * 2.0));
+    lightColor.y = static_cast<float>(sin(glfwGetTime() * 0.7));
+    lightColor.z = static_cast<float>(sin(glfwGetTime() * 1.3));
+    glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
+    glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+    shaders["materialLighting"].setVec3("light.ambient", ambientColor);
+    shaders["materialLighting"].setVec3("light.diffuse", diffuseColor);
+    shaders["materialLighting"].setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+    shaders["materialLighting"].setVec3("material.ambient", glm::vec3(1.0f, 0.5f, 0.31f));
+    shaders["materialLighting"].setVec3("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
+    shaders["materialLighting"].setVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+    shaders["materialLighting"].setFloat("material.shininess", 32.0f);
 
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -118,7 +147,7 @@ int main(int argc, char* argv[]){
         bool grounded = false;      
         bool collided = false;
         glm::vec3 originalMovement = camera.movement;    
-        
+
         for (Object *obj : objects) {
             grounded |= camera.isGrounded(obj->hitbox);         
             obj->changeView(camera.GetViewMatrix());

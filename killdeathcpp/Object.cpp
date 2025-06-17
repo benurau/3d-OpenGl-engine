@@ -1,8 +1,10 @@
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include "Object.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "openglHelpers.h"
-
+#include <glm/gtx/string_cast.hpp>
 
 
 Object::Object(const std::vector<Vertex>& vertices, const int& totalVerticles, const Shader& shader, const std::vector<Texture>& textures, const std::vector<GLuint>& indices) {
@@ -32,7 +34,7 @@ void Object::bindAlltoVao(std::vector<Vertex>vertices) {
     if (loc != -1) {
         bindToVao(vao, loc, 1, 3, sizeof(Vertex), offsetof(Vertex, normal));
     }
-    loc = glGetAttribLocation(shader.ID, "aTexCoord");
+    loc = glGetAttribLocation(shader.ID, "aTexCoords");
     if (loc != -1) {
         bindToVao(vao, loc, 2, 2, sizeof(Vertex), offsetof(Vertex, texCoords));
     }
@@ -73,14 +75,20 @@ void Object::draw() {
             }
 
             GLint loc = glGetUniformLocation(shader.ID, name.c_str());
+            GLint matLoc = glGetUniformLocation(shader.ID, ("material." + name).c_str());
             if (loc != -1) {
                 glUniform1i(loc, i);
                 checkGLError("glUniform1i " + name);
             }
+            else if (matLoc != -1)
+            {
+                glUniform1i(matLoc, i);
+                checkGLError("glUniform1i material." + name);
+            }
             else {
                 std::cout << "[Warn] Uniform not found or inactive: " << name << std::endl;
             }
-
+            
             glBindTexture(GL_TEXTURE_2D, textures[i].id);
             checkGLError("glBindTexture " + name);
         }
@@ -154,6 +162,7 @@ void Object::changeView(glm::mat4 view) {
     this->shader.use();
     this->shader.setMat4("view", view);
     hitbox.setViewMatrix(view);
+    std::cout << "Model Matrix:\n" << glm::to_string(view) << std::endl;
 }
 
 void Object::changePerspective(float degrees) {

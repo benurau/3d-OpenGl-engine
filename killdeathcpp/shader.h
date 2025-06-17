@@ -1,8 +1,11 @@
 #ifndef SHADER_H
 #define SHADER_H
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -16,6 +19,7 @@ class Shader
 public:
     unsigned int ID;
     int shaderExists;
+
     Shader() {}
     Shader(const char* vertexPath, const char* fragmentPath)
     {
@@ -69,7 +73,7 @@ public:
         glAttachShader(ID, fragment);
         glLinkProgram(ID);
         checkCompileErrors(ID, "PROGRAM");
-        PrintActiveUniforms(ID);
+        SetupDebugUniformMap(ID);
         // delete the shaders as they're linked into our program now and no longer necessary
         glDeleteShader(vertex);
         glDeleteShader(fragment);
@@ -89,25 +93,54 @@ public:
     // ------------------------------------------------------------------------
     void setBool(const std::string& name, bool value) const
     {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+        GLint loc = glGetUniformLocation(ID, name.c_str());
+        if (loc != -1) {
+            glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+            uniformValues[name] = value ? "true" : "false";
+        }
+        else {
+            std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
+        }
     }
     // ------------------------------------------------------------------------
     void setInt(const std::string& name, int value) const
     {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+        GLint loc = glGetUniformLocation(ID, name.c_str());
+        if (loc != -1) {
+            glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+            uniformValues[name] = std::to_string(value);
+        }
+        else {
+            std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
+        }
     }
     // ------------------------------------------------------------------------
     void setFloat(const std::string& name, float value) const
     {
-        glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+        GLint loc = glGetUniformLocation(ID, name.c_str());
+        if (loc != -1) {
+            glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+            uniformValues[name] = std::to_string(value);
+        }
+        else {
+            std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
+        }
     }
     void setVec3(const std::string& name, const glm::vec3& value) const {
-        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+        GLint loc = glGetUniformLocation(ID, name.c_str());
+        if (loc != -1) {
+            glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+            uniformValues[name] = glm::to_string(value);
+        }
+        else {
+            std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
+        }   
     }
     void setMat4(const std::string& name, const glm::mat4& mat) const {
         GLint loc = glGetUniformLocation(ID, name.c_str());
         if (loc != -1) {
             glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mat));
+            uniformValues[name] = glm::to_string(mat);
         }
         else {
             std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
@@ -117,9 +150,18 @@ public:
         return glGetUniformLocation(ID, name);
     }
 
+    void PrintDebugUniforms() const {
+        std::cout << "=== Debug Uniform Values ===\n";
+        for (const auto& pair : uniformValues) {
+            std::cout << pair.first << " = " << pair.second << "\n";
+        }
+        std::cout << "============================\n";
+    }
+
 private:
     // utility function for checking shader compilation/linking errors.
     // ------------------------------------------------------------------------
+    mutable std::unordered_map<std::string, std::string> uniformValues;
     void checkCompileErrors(GLuint shader, const std::string& type)
     {
         GLint success;
@@ -149,11 +191,9 @@ private:
         }
     }
 
-    void PrintActiveUniforms(GLuint program) {
+    void SetupDebugUniformMap(GLuint program) {
         GLint numUniforms = 0;
         glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &numUniforms);
-
-        std::cout << "=== Active Uniforms ===\n";
 
         for (int i = 0; i < numUniforms; ++i) {
             char name[256];
@@ -162,17 +202,10 @@ private:
             GLenum type;
 
             glGetActiveUniform(program, i, sizeof(name), &length, &size, &type, name);
-
-            GLint location = glGetUniformLocation(program, name);
-            std::cout << "Uniform #" << i << ": " << name << ", Location: " << location << ", Type: " << type << "\n";
-
-            if (location == -1) {
-                std::cout << "   Warning: Uniform " << name << " is not active or optimized out.\n";
-            }
+            uniformValues[name] = "empty"; // initialize debug tracking
         }
-
-        std::cout << "========================\n";
     }
+
 
 };
 #endif
