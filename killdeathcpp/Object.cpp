@@ -48,9 +48,8 @@ void Object::draw() {
     std::cout << "[Draw] Using shader ID: " << shader.ID << std::endl;
     shader.use();
     checkGLError("usingshader");
-    std::cout << "[Draw] Setting model matrix uniform." << std::endl;
-    shader.setMat4("model", modelMatrix);
-    checkGLError("setMat4(model)");
+    updateShader(&shader);
+    checkGLError("setObjectShaderVlaues(model)");
 
     if (!textures.empty()) {
         shader.setBool("useTexture", true);
@@ -152,24 +151,18 @@ void Object::movePos(const glm::vec3& delta) {
 
 void Object::changeView(glm::vec3 position) {
     glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, position);
-    this->shader.use();
-    this->shader.setMat4("view", view);
-    hitbox.setViewMatrix(view);
+    this->view = glm::translate(view, position);
+    hitbox.setViewMatrix(this->view);
 }
 
 void Object::changeView(glm::mat4 view) {
-    this->shader.use();
-    this->shader.setMat4("view", view);
-    hitbox.setViewMatrix(view);
-    std::cout << "Model Matrix:\n" << glm::to_string(view) << std::endl;
+    this->view = view;
+    hitbox.setViewMatrix(this->view);
 }
 
 void Object::changePerspective(float degrees) {
-    glm::mat4 proj = glm::perspective(glm::radians(degrees), (float)C_RES_WIDTH / (float)C_RES_HEIGHT, 0.1f, 100.0f);
-    this->shader.use();
-    this->shader.setMat4("projection", proj);
-    hitbox.setProjectionMatrix(proj);
+    this->proj = glm::perspective(glm::radians(degrees), (float)C_RES_WIDTH / (float)C_RES_HEIGHT, 0.1f, 100.0f);
+    hitbox.setProjectionMatrix(this->proj);
 }
 
 void Object::setDefault() {
@@ -189,10 +182,17 @@ void Object::updateModelMatrix() {
     trans = glm::rotate(trans, glm::radians(rotation.y), glm::vec3(0, 1, 0));
     trans = glm::rotate(trans, glm::radians(rotation.z), glm::vec3(0, 0, 1));
     trans = glm::scale(trans, scale);
-    modelMatrix = trans;
-    shader.setMat4("model", modelMatrix);
-    hitbox.setModelMatrix(modelMatrix);
+    this->modelMatrix = trans;
+    hitbox.setModelMatrix(this->modelMatrix);
 }
+
+void Object::updateShader(Shader* shader) const {
+    shader->use();
+    shader->setMat4("view", view);
+    shader->setMat4("projection", proj);
+    shader->setMat4("model", modelMatrix);
+}
+
 
 void Object::Destroy() {
     this->hitbox.Destroy();

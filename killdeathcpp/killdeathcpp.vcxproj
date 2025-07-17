@@ -23,7 +23,7 @@
     <ClCompile Include="..\glad.c" />
     <ClCompile Include="Colissions.cpp" />
     <ClCompile Include="Colissions.h" />
-    <ClCompile Include="Model.cpp" />
+    <ClCompile Include="Material.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="openglHelpers.cpp" />
     <ClCompile Include="Renderer.cpp" />
@@ -36,6 +36,9 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Geometry3D.h" />
     <ClInclude Include="HitBox.h" />
+    <ClInclude Include="Lights.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="Mesh.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="openglHelpers.h" />

@@ -96,3 +96,4 @@ GLuint create2DBitMapTexture(const char* filepath) {
     stbi_image_free(data);
     return textureID;
 }
+

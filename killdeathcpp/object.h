@@ -18,6 +18,8 @@ public:
     glm::vec3 rotation = glm::vec3(0.0f);
     glm::vec3 scale = glm::vec3(1.0f);
     glm::mat4 modelMatrix = glm::mat4(1.0f);
+    glm::mat4 view = glm::mat4(1.0);
+    glm::mat4 proj = glm::mat4(1.0);
     HitBox hitbox;
 
 
@@ -32,6 +34,7 @@ public:
     void changeView(glm::mat4 view);
     void changePerspective(float degrees);
     void updateModelMatrix();
+    void updateShader(Shader* shader) const;
     void setDefault();
     
     void setTexture(const std::vector<Texture>& textures) {

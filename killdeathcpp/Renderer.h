@@ -5,9 +5,9 @@
 #include "misc.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "shader.h"
-#include <unordered_map>
 #include <glm/glm.hpp>
+#include "Material.h"
+#include "object.h"
 
 
 #define C_BPP         32
@@ -31,7 +31,7 @@ public:
     void clear();
     void swapBuffers();
 
-    
+    void draw(const Object& object, Material& material);
 
 private:
     GLFWwindow* window;

@@ -19,6 +19,7 @@ class Shader
 public:
     unsigned int ID;
     int shaderExists;
+    mutable std::unordered_map<std::string, std::string> uniformValues;
 
     Shader() {}
     Shader(const char* vertexPath, const char* fragmentPath)
@@ -74,6 +75,8 @@ public:
         glLinkProgram(ID);
         checkCompileErrors(ID, "PROGRAM");
         SetupDebugUniformMap(ID);
+        PrintDebugUniforms();
+
         // delete the shaders as they're linked into our program now and no longer necessary
         glDeleteShader(vertex);
         glDeleteShader(fragment);
@@ -159,9 +162,6 @@ public:
     }
 
 private:
-    // utility function for checking shader compilation/linking errors.
-    // ------------------------------------------------------------------------
-    mutable std::unordered_map<std::string, std::string> uniformValues;
     void checkCompileErrors(GLuint shader, const std::string& type)
     {
         GLint success;
@@ -205,7 +205,6 @@ private:
             uniformValues[name] = "empty"; // initialize debug tracking
         }
     }
-
 
 };
 #endif
