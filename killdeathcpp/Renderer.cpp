@@ -37,7 +37,7 @@ void Renderer::draw(const Object& object, Material& material){
     glBindVertexArray(object.vao);
     checkGLError("glBindVertexArray");
 
-    material.shader->PrintDebugUniforms();
+    //material.shader->PrintDebugUniforms();
 
     if (!object.indices.empty()) {
         std::cout << "[Draw] Drawing with glDrawElements, count: " << object.indices.size() << std::endl;

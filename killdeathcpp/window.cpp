@@ -7,6 +7,10 @@
 #include "Colissions.h"
 #include "Material.h"
 #include "Lights.h"
+#include "model.h"
+
+
+
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -62,9 +66,10 @@ int main(int argc, char* argv[]){
     shaders["basiclighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\basiclighting.fs");
     shaders["materialLighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\materialLighting.fs");
     shaders["textureLighting"] = Shader("..\\shaders\\lightingMap.vs", "..\\shaders\\lightingMap.fs");
+    shaders["model_Load"] = Shader("..\\shaders\\model_load.vs", "..\\shaders\\model_load.fs");
 
     Material silver = Material(&shaders["materialLighting"]);
-
+    Model backpack = Model("..\\models\\backpack\\backpack.obj");
     DirLight basicLight;
 
 
@@ -118,6 +123,8 @@ int main(int argc, char* argv[]){
     materialLightingObject.movePos(glm::vec3(1.0f, -0.5f, 3.0f));
     textureLightingObject.movePos(glm::vec3(1.0f, -0.5f, 4.0f));
 
+    
+
     shaders["textureLighting"].use();
     shaders["textureLighting"].setVec3("light.position", glm::vec3(1.0f, 0.5f, 1.0f));
     shaders["textureLighting"].setVec3("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
@@ -141,7 +148,6 @@ int main(int argc, char* argv[]){
     basicLight.diffuse = diffuseColor;
     basicLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
     
-
     silver.vec3Uniforms["material.ambient"]  = glm::vec3(1.0f, 0.5f, 0.31f);
     silver.vec3Uniforms["material.diffuse"]  = glm::vec3(1.0f, 0.5f, 0.31f);
     silver.vec3Uniforms["material.specular"] = glm::vec3(0.5f, 0.5f, 0.5f);
@@ -158,10 +164,22 @@ int main(int argc, char* argv[]){
         bool collided = false;
         glm::vec3 originalMovement = camera.movement;    
 
+
+        shaders["model_Load"].use();
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)1080 / (float)640, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+        shaders["model_Load"].setMat4("projection", projection);
+        shaders["model_Load"].setMat4("view", view);
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	// it's a bit too big for our scene, so scale it down
+        shaders["model_Load"].setMat4("model", model);
+
         materialLightingObject.changeView(camera.GetViewMatrix());
         basicLight.SetLightUniforms(shaders["materialLighting"], "light");
         renderer.draw(materialLightingObject, silver);
-        
+
+        backpack.Draw(shaders["model_Load"]);
 
         for (Object *obj : objects) {
             grounded |= camera.isGrounded(obj->hitbox);         

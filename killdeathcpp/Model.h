@@ -6,7 +6,7 @@
 #include <assimp/postprocess.h>
 #include "stb_image.h"
 #include "mesh.h"
-
+#include <filesystem>
 
 
 
@@ -154,9 +154,13 @@ private:
 
 
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma)
-{
-    string filename = string(path);
-    filename = directory + '/' + filename;
+{   
+
+    filesystem::path p(directory);
+    p.replace_filename(path);
+    string filename = p.string();
+
+    std::cout<<filename<<"\n";
 
     unsigned int textureID;
     glGenTextures(1, &textureID);
