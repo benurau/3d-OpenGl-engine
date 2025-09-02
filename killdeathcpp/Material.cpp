@@ -1,7 +1,6 @@
 #include "Material.h"
 #include <unordered_set>
 
-
 Material::Material(Shader* shader) {
     this->shader = shader;
 }
@@ -14,12 +13,8 @@ void Material::bindTextures() const {
             shader->setBool("useTexture", true);
 
         const std::string& uniformName = pair.first;
-        const Texture* texture = pair.second;
+        const Texture texture = pair.second;
 
-        if (!texture) {
-            std::cerr << "[Warn] Null texture pointer for uniform: " << uniformName << std::endl;
-            continue;
-        }
         glActiveTexture(GL_TEXTURE0 + i);
         checkGLError("glActiveTexture " + std::to_string(i));
 
@@ -32,7 +27,7 @@ void Material::bindTextures() const {
             std::cout << "[Warn] Uniform not found or inactive: " << uniformName << std::endl;
         }
 
-        glBindTexture(GL_TEXTURE_2D, texture->id);
+        glBindTexture(GL_TEXTURE_2D, texture.id);
         checkGLError("glBindTexture " + uniformName);
         ++i;
     }

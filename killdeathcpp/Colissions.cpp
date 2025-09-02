@@ -101,6 +101,17 @@ bool point_Box_Colission(HitBox& box, glm::vec3 position, glm::vec3& Movement)
     return false;
 }
 
+bool basic_AABB_Colission(AABB& box, glm::vec3 position, glm::vec3& Movement) {
+    glm::vec3 newPosition = position + Movement;
+    if (newPosition.x < box.min.x) return false;
+    if (newPosition.x > box.max.x) return false;
+    if (newPosition.y < box.min.y) return false;
+    if (newPosition.y > box.max.y) return false;
+    if (newPosition.z < box.min.z) return false;        
+    if (newPosition.z > box.max.z) return false;
+    return true;
+}
+
 
 std::vector<glm::vec3> computeVertexNormals(
     const std::vector<glm::vec3>& positions,
@@ -129,3 +140,4 @@ std::vector<glm::vec3> computeVertexNormals(
     }
     return normals;
 }
+

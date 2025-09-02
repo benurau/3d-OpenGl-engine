@@ -7,7 +7,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include "Material.h"
-#include "object.h"
+#include "Mesh.h"
 
 
 #define C_BPP         32
@@ -31,7 +31,7 @@ public:
     void clear();
     void swapBuffers();
 
-    void draw(const Object& object, Material& material);
+    void draw(const Mesh& mesh, Material& material);
 
 private:
     GLFWwindow* window;

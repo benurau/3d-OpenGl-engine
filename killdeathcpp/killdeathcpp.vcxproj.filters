@@ -13,86 +13,122 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\ObjectcppFiles">
+      <UniqueIdentifier>{0c39a067-0883-4848-ba1c-8dcfb74f86ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ShadercppFiles">
+      <UniqueIdentifier>{8341351c-41e2-4e52-8ea7-6fb840f83b51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\SoundEnginecppFiles">
+      <UniqueIdentifier>{e672ff10-a1ed-4668-86b7-7c9db4f47c00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\RenderercppFiles">
+      <UniqueIdentifier>{19bb2ad4-de5d-4f33-94d7-7ad79b43a8e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ObjecthFiles">
+      <UniqueIdentifier>{af6f1da6-d724-41e1-98d6-5124031eebbd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ShaderhFiles">
+      <UniqueIdentifier>{50d7dc2f-182f-4f3b-b7f0-8db215222bc1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\InteractionhFiles">
+      <UniqueIdentifier>{6d6f1084-15e3-43b1-a9c0-d845f8ec5e34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\InteractioncppFiles">
+      <UniqueIdentifier>{8b106485-f3a2-4c59-ab65-3af877bc25ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\SoundEnginehFiles">
+      <UniqueIdentifier>{89b3b894-0611-4137-86e4-c41ce4a56e32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\RendererhFiles">
+      <UniqueIdentifier>{2dcc151e-29b7-40e2-ba0a-527c2c009ed4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="window.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Wav.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="soundEngine.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Source Files\ObjectcppFiles</Filter>
     </ClCompile>
-    <ClCompile Include="Object.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Colissions.h">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="openglHelpers.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Colissions.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="ObjectOrientation.cpp">
+      <Filter>Source Files\ObjectcppFiles</Filter>
     </ClCompile>
     <ClCompile Include="Material.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\ShadercppFiles</Filter>
+    </ClCompile>
+    <ClCompile Include="soundEngine.cpp">
+      <Filter>Source Files\SoundEnginecppFiles</Filter>
+    </ClCompile>
+    <ClCompile Include="Wav.cpp">
+      <Filter>Source Files\SoundEnginecppFiles</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Source Files\RenderercppFiles</Filter>
+    </ClCompile>
+    <ClCompile Include="window.cpp">
+      <Filter>Source Files\RenderercppFiles</Filter>
+    </ClCompile>
+    <ClCompile Include="openglHelpers.cpp">
+      <Filter>Source Files\ObjectcppFiles</Filter>
+    </ClCompile>
+    <ClCompile Include="Colissions.h">
+      <Filter>Header Files\InteractionhFiles</Filter>
+    </ClCompile>
+    <ClCompile Include="Colissions.cpp">
+      <Filter>Source Files\InteractioncppFiles</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Renderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="misc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Wav.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Downloads\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="soundEngine.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Mesh.h">
+      <Filter>Header Files\ObjecthFiles</Filter>
     </ClInclude>
-    <ClInclude Include="shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Object.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="HitBox.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Geometry3D.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="ObjectOrientation.h">
+      <Filter>Header Files\ObjecthFiles</Filter>
     </ClInclude>
     <ClInclude Include="ObjectParams.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\ObjecthFiles</Filter>
     </ClInclude>
     <ClInclude Include="Model.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\ObjecthFiles</Filter>
     </ClInclude>
-    <ClInclude Include="openglHelpers.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="ModelMesh.h">
+      <Filter>Header Files\ObjecthFiles</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Material.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="shader.h">
+      <Filter>Header Files\ShaderhFiles</Filter>
     </ClInclude>
     <ClInclude Include="Lights.h">
+      <Filter>Header Files\ShaderhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>Header Files\ShaderhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="HitBox.h">
+      <Filter>Header Files\InteractionhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="soundEngine.h">
+      <Filter>Header Files\SoundEnginehFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Wav.h">
+      <Filter>Header Files\SoundEnginehFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Header Files\RendererhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="openglHelpers.h">
+      <Filter>Header Files\RendererhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Header Files\RendererhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Geometry3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

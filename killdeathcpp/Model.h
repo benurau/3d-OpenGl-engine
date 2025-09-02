@@ -5,28 +5,54 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include "stb_image.h"
-#include "mesh.h"
+#include "ModelMesh.h"
 #include <filesystem>
 
 
 
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false);
+AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes);
 
 class Model
 {
 public:
     vector<Texture> textures_loaded;
-    vector<Mesh>    meshes;
+    vector<ModelMesh>    meshes;
     string directory;
     bool gammaCorrection;
+    ObjectOrientation orientation;
+    AABB coarse_AABB;
+
     Model(string const& path, bool gamma = false) : gammaCorrection(gamma)
     {
         loadModel(path);
+        coarse_AABB = computeUnionHitbox(meshes);
     }
     void Draw(Shader& shader)
     {
+        orientation.updateShader(&shader);
         for (unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].Draw(shader);
+    }
+
+    void rotate(const glm::vec3& angleDelta) {
+        orientation.rotate(angleDelta);
+        updateMeshHitboxes();
+        coarse_AABB = computeUnionHitbox(meshes);
+    }
+    void changeSize(const glm::vec3& scaleFactor) {
+        orientation.changeSize(scaleFactor);
+        updateMeshHitboxes();
+        coarse_AABB = computeUnionHitbox(meshes);
+    }
+    void movePos(const glm::vec3& delta) {
+        orientation.movePos(delta);
+        updateMeshHitboxes();
+        coarse_AABB = computeUnionHitbox(meshes);
+    }
+    void updateMeshHitboxes() {
+        for (unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].hitbox.updateModelMatrix(orientation.modelMatrix);
     }
 
 private:
@@ -57,7 +83,7 @@ private:
 
     }
 
-    Mesh processMesh(aiMesh* mesh, const aiScene* scene)
+    ModelMesh processMesh(aiMesh* mesh, const aiScene* scene)
     {
         vector<Vertex> vertices;
         vector<unsigned int> indices;
@@ -117,7 +143,7 @@ private:
         std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
-        return Mesh(vertices, indices, textures);
+        return ModelMesh(vertices, indices, textures);
     }
 
 
@@ -150,6 +176,7 @@ private:
         }
         return textures;
     }
+
 };
 
 
@@ -196,4 +223,41 @@ unsigned int TextureFromFile(const char* path, const string& directory, bool gam
 
     return textureID;
 }
+
+AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes) {
+    AABB result;
+    result.min = glm::vec3(FLT_MAX);
+    result.max = glm::vec3(-FLT_MAX);
+    for (const ModelMesh mesh : meshes) {
+        const HitBox& hb = mesh.hitbox;
+        result.min.x = std::min(result.min.x, hb.min.x);
+        result.min.y = std::min(result.min.y, hb.min.y);
+        result.min.z = std::min(result.min.z, hb.min.z);
+        result.max.x = std::max(result.max.x, hb.max.x);
+        result.max.y = std::max(result.max.y, hb.max.y);
+        result.max.z = std::max(result.max.z, hb.max.z);
+    }
+    return result;
+}
+
+bool CheckModelCollision(Model& model, Camera& camera) {
+    bool collided = false;
+    for (ModelMesh mesh : model.meshes) {
+        if (point_Box_Colission(mesh.hitbox, camera.position, camera.movement)) {
+            collided = true;
+        }
+    }
+    return collided;
+}
+
+bool checkGroundedOnMeshes(Model& model, Camera& camera) {
+    bool grounded = false;
+    for (ModelMesh mesh : model.meshes) {
+        grounded |= camera.isGrounded(mesh.hitbox);
+    }
+    return grounded;
+}
+
+
+
 #endif

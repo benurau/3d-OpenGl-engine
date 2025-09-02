@@ -114,20 +114,11 @@ public:
         max += RADIUS;
     }
 
-    void setModelMatrix(const glm::mat4x4& ModelMatrix)
+
+    void updateModelMatrix(const glm::mat4x4& ModelMatrix)
     {
         this->ModelMatrix = ModelMatrix;
         this->NormalMatrix = glm::transpose(glm::inverse(glm::mat3x3(ModelMatrix)));
-        PrepareTriangles();
-    }
-    void setViewMatrix(const glm::mat4x4& view)
-    {
-        this->view = view;
-        PrepareTriangles();
-    }
-    void setProjectionMatrix(const glm::mat4x4& projection)
-    {
-        this->projection = projection;
         PrepareTriangles();
     }
 

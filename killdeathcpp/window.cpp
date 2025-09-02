@@ -1,11 +1,9 @@
 #include <iostream>
 #include "renderer.h"
 #include "soundEngine.h"
-#include "Object.h"
 #include "Camera.h"
 #include "ObjectParams.h"
 #include "Colissions.h"
-#include "Material.h"
 #include "Lights.h"
 #include "model.h"
 
@@ -23,6 +21,14 @@ void errorCallback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
 }
 
+void printMat4(const glm::mat4& mat) {
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            std::cout << mat[col][row] << " "; // GLM stores in column-major order
+        }
+        std::cout << "\n";
+    }
+}
 
 void processKeyboard(GLFWwindow* window);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -57,30 +63,6 @@ int main(int argc, char* argv[]){
     //sEngine.initialize();
     //WAV huh = sEngine.loadWavFile("..\\assets\\ahem_x.wav", "ahem");
     //SDL_AudioDeviceID aDevice = sEngine.openAudioDevice(huh);
-    GLuint monster = create2DBitMapTexture("..\\assets\\monster1.bmp");
-    GLuint background = create2DBitMapTexture("..\\assets\\background.bmp");
-
-    std::unordered_map <std::string, Shader> shaders;
-    shaders["quad3d"] = Shader("..\\shaders\\quad3d.vs", "..\\shaders\\quad3d.fs");
-    shaders["lightcube"] = Shader("..\\shaders\\lightcube.vs", "..\\shaders\\lightcube.fs");
-    shaders["basiclighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\basiclighting.fs");
-    shaders["materialLighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\materialLighting.fs");
-    shaders["textureLighting"] = Shader("..\\shaders\\lightingMap.vs", "..\\shaders\\lightingMap.fs");
-    shaders["model_Load"] = Shader("..\\shaders\\model_load.vs", "..\\shaders\\model_load.fs");
-
-    Material silver = Material(&shaders["materialLighting"]);
-    Model backpack = Model("..\\models\\backpack\\backpack.obj");
-    DirLight basicLight;
-
-
-    std::vector<Texture> floorTextures;
-    floorTextures.push_back({ monster, "texture_diffuse", "..\\assets\\monster1.bmp" });
-    //floorTextures.push_back({ specularTexture, "texture_specular" });
-
-    std::vector<Texture> cubeTextures;
-    cubeTextures.push_back({ background, "texture_diffuse", "..\\assets\\background.bmp" });
-    
-    std::vector<Texture> emptyTextures;
 
     std::vector<Vertex> cubeVertices;
     cubeVertices.reserve(cubePos.size());
@@ -93,27 +75,44 @@ int main(int argc, char* argv[]){
     for (size_t i = 0; i < quadPos.size(); ++i) {
         quadVertices.emplace_back(quadPos[i], quadNormals[i], quadTexCoords[i]);
     }
-    glEnable(GL_DEPTH_TEST);
-    Object floor(cubeVertices, 36, shaders["quad3d"], cubeTextures, cubeIndices);
-    Object cubeObject(cubeVertices, 36, shaders["quad3d"], floorTextures, cubeIndices);
-    Object lightingCube(cubeVertices, 36, shaders["quad3d"], emptyTextures, cubeIndices);
-	Object basicLightingObject(cubeVertices, 36, shaders["basiclighting"], emptyTextures, cubeIndices);
-    Object materialLightingObject(cubeVertices, 36, shaders["materialLighting"], emptyTextures, cubeIndices);
-    Object textureLightingObject(cubeVertices, 36, shaders["textureLighting"], cubeTextures, cubeIndices);
 
-	
+    GLuint monster = create2DBitMapTexture("..\\assets\\monster1.bmp");
+    GLuint background = create2DBitMapTexture("..\\assets\\background.bmp");
+
+    std::unordered_map <std::string, Shader> shaders;
+    shaders["quad3d"] = Shader("..\\shaders\\quad3d.vs", "..\\shaders\\quad3d.fs");
+    shaders["lightcube"] = Shader("..\\shaders\\lightcube.vs", "..\\shaders\\lightcube.fs");
+    shaders["basiclighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\basiclighting.fs");
+    shaders["materialLighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\materialLighting.fs");
+    shaders["textureLighting"] = Shader("..\\shaders\\lightingMap.vs", "..\\shaders\\lightingMap.fs");
+    shaders["model_Load"] = Shader("..\\shaders\\model_load.vs", "..\\shaders\\model_load.fs");
+
+    Texture scarywall = { background, "diffusion1", "..\\assets\\background.bmp" };
+
+    Material silver = Material(&shaders["materialLighting"]);
+    Material TextureLight = Material(&shaders["textureLighting"]);
+    Material basic = Material(&shaders["quad3d"]);
+    TextureLight.textureUniforms["material.texture_diffuse1"] = scarywall;
+    Model backpack = Model("..\\models\\backpack\\backpack.obj");
+    DirLight basicLight;
+
+    Mesh floor(cubeVertices, 36, TextureLight, cubeIndices);
+    Mesh cubeObject(cubeVertices, 36, silver, cubeIndices);
+    Mesh lightingCube(cubeVertices, 36, silver, cubeIndices);
+    Mesh basicLightingObject(cubeVertices, 36, silver, cubeIndices);
+    Mesh materialLightingObject(cubeVertices, 36, silver, cubeIndices);
+    Mesh textureLightingObject(cubeVertices, 36, silver, cubeIndices);
+
     Light pointLight;
     pointLight.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
     pointLight.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
     pointLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 
-    std::vector<Object*> objects;
-    objects.push_back(&cubeObject);
-    objects.push_back(&floor);
-    objects.push_back(&lightingCube);
-	//objects.push_back(&basicLightingObject);
-    //objects.push_back(&materialLightingObject);
-    objects.push_back(&textureLightingObject);
+    std::vector<Mesh*> meshes;
+    meshes.emplace_back(&cubeObject);
+    meshes.emplace_back(&floor);
+    meshes.emplace_back(&lightingCube);
+    meshes.emplace_back(&textureLightingObject);
 
     floor.changeSize(glm::vec3(100.0f, 0.0f, 100.0f));
     floor.movePos(glm::vec3(-1.0f, -1.0f, -1.0f));
@@ -123,7 +122,8 @@ int main(int argc, char* argv[]){
     materialLightingObject.movePos(glm::vec3(1.0f, -0.5f, 3.0f));
     textureLightingObject.movePos(glm::vec3(1.0f, -0.5f, 4.0f));
 
-    
+    backpack.changeSize(glm::vec3(-0.5f, -0.5f, -0.5f));
+    backpack.movePos(glm::vec3(-1.0f, -0.5f, -0.5f));
 
     shaders["textureLighting"].use();
     shaders["textureLighting"].setVec3("light.position", glm::vec3(1.0f, 0.5f, 1.0f));
@@ -133,17 +133,11 @@ int main(int argc, char* argv[]){
     shaders["textureLighting"].setVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
     shaders["textureLighting"].setFloat("material.shininess", 32.0f);
 
-    /*shaders["materialLighting"].use();
-    shaders["materialLighting"].setVec3("light.position", lightingCube.position);
-    shaders["materialLighting"].setVec3("light.ambient", ambientColor);
-    shaders["materialLighting"].setVec3("light.diffuse", diffuseColor);
-    shaders["materialLighting"].setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));*/
-
     glm::vec3 lightColor = glm::vec3(0.6f, 1.2f, 2.2f);
     glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
     glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
 
-    basicLight.direction = lightingCube.position;
+    basicLight.direction = lightingCube.orientation.position;
     basicLight.ambient = ambientColor;
     basicLight.diffuse = diffuseColor;
     basicLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -152,6 +146,7 @@ int main(int argc, char* argv[]){
     silver.vec3Uniforms["material.diffuse"]  = glm::vec3(1.0f, 0.5f, 0.31f);
     silver.vec3Uniforms["material.specular"] = glm::vec3(0.5f, 0.5f, 0.5f);
     silver.floatUniforms["material.shininess"] = 32.0f;
+    glEnable(GL_DEPTH_TEST);
 
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -164,32 +159,27 @@ int main(int argc, char* argv[]){
         bool collided = false;
         glm::vec3 originalMovement = camera.movement;    
 
+        backpack.orientation.changeView(camera.GetViewMatrix());
+        backpack.Draw(shaders["model_Load"]);
 
-        shaders["model_Load"].use();
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)1080 / (float)640, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        shaders["model_Load"].setMat4("projection", projection);
-        shaders["model_Load"].setMat4("view", view);
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	// it's a bit too big for our scene, so scale it down
-        shaders["model_Load"].setMat4("model", model);
-
-        materialLightingObject.changeView(camera.GetViewMatrix());
+        materialLightingObject.orientation.changeView(camera.GetViewMatrix());
         basicLight.SetLightUniforms(shaders["materialLighting"], "light");
         renderer.draw(materialLightingObject, silver);
 
-        backpack.Draw(shaders["model_Load"]);
+        if (basic_AABB_Colission(backpack.coarse_AABB, camera.position, camera.movement)) {
+            collided = CheckModelCollision(backpack, camera);
+            grounded = checkGroundedOnMeshes(backpack, camera);
+        }
+        for (Mesh* mesh : meshes) {
+            grounded |= camera.isGrounded(mesh->hitbox);
+            mesh->orientation.changeView(camera.GetViewMatrix());
+            renderer.draw(*mesh, mesh->material);
 
-        for (Object *obj : objects) {
-            grounded |= camera.isGrounded(obj->hitbox);         
-            obj->changeView(camera.GetViewMatrix());
-            obj->draw();        
-
-            if (point_Box_Colission(obj->hitbox, camera.position, camera.movement)) {
+            if (point_Box_Colission(mesh->hitbox, camera.position, camera.movement)) {
                 collided = true;
             }
         }
+
         if (collided) {
             camera.position += camera.movement;
         }
@@ -206,10 +196,6 @@ int main(int argc, char* argv[]){
         camera.applyGravity(deltaTime);
         glfwPollEvents();
         glfwSwapBuffers(window);
-    }
-
-    for (Object* i : objects) {
-        i->Destroy();
     }
     //sEngine.audioCleanup(huh, aDevice);
     glfwTerminate();

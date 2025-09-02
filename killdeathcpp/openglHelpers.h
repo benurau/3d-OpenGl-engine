@@ -10,7 +10,7 @@ std::string checkGLError(const std::string& label);
 GLuint generateVBO(const std::vector<Vertex>& vertices);
 GLuint generateVAO();
 GLuint generateIBO(const std::vector<GLuint>& indices);
-void bindToVao(GLuint vao, GLuint vbo, int vertexArray, int vecSize, int stride, int offset);
+void bindToVao(GLuint vao, int vertexArray, int vecSize, int stride, int offset);
 GLuint create2DBitMapTexture(const char* filepath);
 
 #endif

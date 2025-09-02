@@ -110,7 +110,7 @@ public:
     {
         GLint loc = glGetUniformLocation(ID, name.c_str());
         if (loc != -1) {
-            glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+            glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
             uniformValues[name] = std::to_string(value);
         }
         else {

@@ -58,7 +58,7 @@ GLuint generateIBO(const std::vector<GLuint>& indices) {
     return IBO;
 }
 
-void bindToVao(GLuint vao, GLuint vbo, int vertexArray, int vecSize, int stride, int offset) {
+void bindToVao(GLuint vao, int vertexArray, int vecSize, int stride, int offset) {
     glBindVertexArray(vao);
     glEnableVertexAttribArray(vertexArray);
     glVertexAttribPointer(vertexArray, vecSize, GL_FLOAT, GL_FALSE, stride, (void*)offset);

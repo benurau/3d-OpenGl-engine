@@ -116,6 +116,18 @@ public:
         return false;
     }
 
+    bool isGrounded(const AABB box) {
+        glm::vec3 camBottom = position;
+        float groundThreshold = 0.2f;
+        if (camBottom.x >= box.min.x && camBottom.x <= box.max.x &&
+            camBottom.z >= box.min.z && camBottom.z <= box.max.z &&
+            camBottom.y+0.15f >= box.max.y && camBottom.y+0.15f <= box.max.y + groundThreshold)
+        {           
+            return true;
+        }     
+        return false;
+    }
+
     void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
     {
         xoffset *= MouseSensitivity;

@@ -10,8 +10,9 @@ public:
     std::unordered_map<std::string, float> floatUniforms;
     std::unordered_map<std::string, glm::vec3> vec3Uniforms;
     std::unordered_map<std::string, glm::mat4> mat4Uniforms;
-    std::unordered_map<std::string, Texture*> textureUniforms;
+    std::unordered_map<std::string, Texture> textureUniforms;
 
+    Material() = default;
     Material(Shader* shader);
     void bindTextures() const;
     void apply(); 
