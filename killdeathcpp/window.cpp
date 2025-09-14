@@ -93,7 +93,7 @@ int main(int argc, char* argv[]){
     Material TextureLight = Material(&shaders["textureLighting"]);
     Material basic = Material(&shaders["quad3d"]);
     TextureLight.textureUniforms["material.texture_diffuse1"] = scarywall;
-    Model backpack = Model("..\\models\\backpack\\backpack.obj");
+    Model backpack = Model("..\\models\\backpack\\scene.gltf");
     DirLight basicLight;
 
     Mesh floor(cubeVertices, 36, TextureLight, cubeIndices);
