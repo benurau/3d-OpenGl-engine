@@ -8,10 +8,15 @@
 #include "ModelMesh.h"
 #include <filesystem>
 
-
+struct BoneInfo {
+    glm::mat4 offset;
+    glm::mat4 finalTransform;
+};
 
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false);
 AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes);
+glm::mat4 AssimpToGlmMat4(const aiMatrix4x4& from);
+void setVertexBoneData(Vertex& vertex, int boneID, float weight);
 
 class Model
 {
@@ -22,6 +27,9 @@ public:
     bool gammaCorrection;
     ObjectOrientation orientation;
     AABB coarse_AABB;
+    std::unordered_map<std::string, int> m_BoneMapping;
+    std::vector<BoneInfo> m_BoneInfo;
+    int m_BoneCount = 0;
 
     Model(string const& path, bool gamma = false) : gammaCorrection(gamma)
     {
@@ -142,7 +150,7 @@ private:
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
         std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
-
+        extractBoneWeights(vertices, mesh, scene);
         return ModelMesh(vertices, indices, textures);
     }
 
@@ -177,7 +185,50 @@ private:
         return textures;
     }
 
+    void extractBoneWeights(std::vector<Vertex>& vertices, aiMesh* mesh, const aiScene* scene) {
+        for (unsigned int i = 0; i < mesh->mNumBones; i++) {
+            aiBone* bone = mesh->mBones[i];
+            std::string boneName(bone->mName.data);
+            int boneIndex = 0;
+            if (m_BoneMapping.find(boneName) == m_BoneMapping.end()) {
+                boneIndex = m_BoneCount;
+                m_BoneMapping[boneName] = m_BoneCount;
+                BoneInfo bi;
+                bi.offset = AssimpToGlmMat4(bone->mOffsetMatrix);
+                m_BoneInfo.push_back(bi);
+                m_BoneCount++;
+            }
+            else {
+                boneIndex = m_BoneMapping[boneName];
+            }
+
+            for (unsigned int j = 0; j < bone->mNumWeights; j++) {
+                int vertexId = bone->mWeights[j].mVertexId;
+                float weight = bone->mWeights[j].mWeight;
+                setVertexBoneData(vertices[vertexId], boneIndex, weight);
+            }
+        }
+    }
+
 };
+
+glm::mat4 AssimpToGlmMat4(const aiMatrix4x4& from) {
+    glm::mat4 to;
+    to[0][0] = from.a1; to[1][0] = from.a2; to[2][0] = from.a3; to[3][0] = from.a4;
+    to[0][1] = from.b1; to[1][1] = from.b2; to[2][1] = from.b3; to[3][1] = from.b4;
+    to[0][2] = from.c1; to[1][2] = from.c2; to[2][2] = from.c3; to[3][2] = from.c4;
+    to[0][3] = from.d1; to[1][3] = from.d2; to[2][3] = from.d3; to[3][3] = from.d4;
+    return to;
+}
+
+void setVertexBoneData(Vertex& vertex, int boneID, float weight) {
+    for (int i = 0; i < 4; i++) {
+        if (vertex.m_BoneIDs[i] < 0) {
+            vertex.m_BoneIDs[i] = boneID;
+            vertex.m_Weights[i] = weight;
+        }
+    }
+}
 
 
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma)
@@ -223,6 +274,7 @@ unsigned int TextureFromFile(const char* path, const string& directory, bool gam
 
     return textureID;
 }
+
 
 AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes) {
     AABB result;
