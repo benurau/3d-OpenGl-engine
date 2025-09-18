@@ -86,6 +86,7 @@ int main(int argc, char* argv[]){
     shaders["materialLighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\materialLighting.fs");
     shaders["textureLighting"] = Shader("..\\shaders\\lightingMap.vs", "..\\shaders\\lightingMap.fs");
     shaders["model_Load"] = Shader("..\\shaders\\model_load.vs", "..\\shaders\\model_load.fs");
+    shaders["animation"] = Shader("..\\shaders\\animation.vs", "..\\shaders\\animation.fs");
 
     Texture scarywall = { background, "diffusion1", "..\\assets\\background.bmp" };
 
@@ -93,7 +94,8 @@ int main(int argc, char* argv[]){
     Material TextureLight = Material(&shaders["textureLighting"]);
     Material basic = Material(&shaders["quad3d"]);
     TextureLight.textureUniforms["material.texture_diffuse1"] = scarywall;
-    Model backpack = Model("..\\models\\backpack\\scene.gltf");
+    Model glock = Model("..\\models\\glock\\scene.gltf");
+    Model backpack = Model("..\\models\\backpack\\backpack.obj");
     DirLight basicLight;
 
     Mesh floor(cubeVertices, 36, TextureLight, cubeIndices);
