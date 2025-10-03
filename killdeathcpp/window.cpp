@@ -86,7 +86,7 @@ int main(int argc, char* argv[]){
     shaders["materialLighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\materialLighting.fs");
     shaders["textureLighting"] = Shader("..\\shaders\\lightingMap.vs", "..\\shaders\\lightingMap.fs");
     shaders["model_Load"] = Shader("..\\shaders\\model_load.vs", "..\\shaders\\model_load.fs");
-    shaders["animation"] = Shader("..\\shaders\\animation.vs", "..\\shaders\\animation.fs");
+    shaders["animation"] = Shader("..\\shaders\\ModelAnimation.vs", "..\\shaders\\ModelAnimation.fs");
 
     Texture scarywall = { background, "diffusion1", "..\\assets\\background.bmp" };
 
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]){
     Material basic = Material(&shaders["quad3d"]);
     TextureLight.textureUniforms["material.texture_diffuse1"] = scarywall;
     Model glock = Model("..\\models\\glock\\scene.gltf");
-    Model backpack = Model("..\\models\\backpack\\backpack.obj");
+    Model backpack = Model("..\\models\\backpack\\backpack.gltf");
     DirLight basicLight;
 
     Mesh floor(cubeVertices, 36, TextureLight, cubeIndices);
@@ -161,8 +161,10 @@ int main(int argc, char* argv[]){
         bool collided = false;
         glm::vec3 originalMovement = camera.movement;    
 
-        backpack.orientation.changeView(camera.GetViewMatrix());
-        backpack.Draw(shaders["model_Load"]);
+        //backpack.orientation.changeView(camera.GetViewMatrix());
+        //backpack.Draw(shaders["model_Load"]);
+		glock.orientation.changeView(camera.GetViewMatrix());
+		glock.Draw(shaders["animation"]);
 
         materialLightingObject.orientation.changeView(camera.GetViewMatrix());
         basicLight.SetLightUniforms(shaders["materialLighting"], "light");
