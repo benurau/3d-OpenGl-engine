@@ -26,7 +26,7 @@ void Renderer::draw(const Mesh& mesh, Material& material){
         return;
     }
 
-    std::cout << "[Draw] Using shader ID: " << material.shader->ID << std::endl;
+    //std::cout << "[Draw] Using shader ID: " << material.shader->ID << std::endl;
 
     mesh.orientation.updateShader(material.shader);
     checkGLError("setMat4(model)");
@@ -34,29 +34,29 @@ void Renderer::draw(const Mesh& mesh, Material& material){
     material.apply();
     checkGLError("material.apply");
 
-    std::cout << "[Draw] Binding VAO ID: " << mesh.vao << std::endl;
+    //std::cout << "[Draw] Binding VAO ID: " << mesh.vao << std::endl;
     glBindVertexArray(mesh.vao);
     checkGLError("glBindVertexArray");
     //material.shader->PrintDebugUniforms();
 
     if (!mesh.indices.empty()) {
-        std::cout << "[Draw] Drawing with glDrawElements, count: " << mesh.indices.size() << std::endl;
+        //std::cout << "[Draw] Drawing with glDrawElements, count: " << mesh.indices.size() << std::endl;
         glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, 0);
         checkGLError("glDrawElements");
     }
     else {
-        std::cout << "[Draw] Drawing with glDrawArrays, count: " << mesh.totalVerticles << std::endl;
+        //std::cout << "[Draw] Drawing with glDrawArrays, count: " << mesh.totalVerticles << std::endl;
         glDrawArrays(GL_TRIANGLES, 0, mesh.totalVerticles);
         checkGLError("glDrawArrays");
     }
 
     glBindVertexArray(0);
-    std::cout << "[Draw] Unbound VAO." << std::endl;
+    //std::cout << "[Draw] Unbound VAO." << std::endl;
 
 
     glActiveTexture(GL_TEXTURE0);
     checkGLError("activatetexture0");
-    std::cout << "[Draw] Reset active texture to GL_TEXTURE0." << std::endl;
+    //std::cout << "[Draw] Reset active texture to GL_TEXTURE0." << std::endl;
 }
 
 

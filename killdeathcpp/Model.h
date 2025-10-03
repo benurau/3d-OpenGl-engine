@@ -23,6 +23,7 @@ class Model
 public:
     vector<Texture> textures_loaded;
     vector<ModelMesh>    meshes;
+    Assimp::Importer importer;
     string directory;
     bool gammaCorrection;
     ObjectOrientation orientation;
@@ -30,18 +31,26 @@ public:
     std::unordered_map<std::string, int> m_BoneMapping;
     std::vector<BoneInfo> m_BoneInfo;
     int m_BoneCount = 0;
+    glm::mat4 globalInverseTransform;
+    const aiScene* m_Scene = nullptr;
 
     Model(string const& path, bool gamma = false) : gammaCorrection(gamma)
     {
         loadModel(path);
         coarse_AABB = computeUnionHitbox(meshes);
+        InitializeBoneTransforms();
     }
     void Draw(Shader& shader)
     {
         orientation.updateShader(&shader);
+        SetBoneTransforms(shader);
+        std::cout << directory <<"model directory \n";
+        shader.PrintDebugUniforms();
         for (unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].Draw(shader);
     }
+
+
 
     void rotate(const glm::vec3& angleDelta) {
         orientation.rotate(angleDelta);
@@ -66,32 +75,38 @@ public:
 private:
     void loadModel(string const& path)
     {
-        Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
         {
             cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << endl;
             return;
         }
+        m_Scene = scene;
+        globalInverseTransform = glm::inverse(AssimpToGlmMat4(scene->mRootNode->mTransformation));
         directory = path.substr(0, path.find_last_of('/'));
         processNode(scene->mRootNode, scene);
+        std::cout << "Root node transform:\n"
+            << glm::to_string(AssimpToGlmMat4(scene->mRootNode->mTransformation)) << "\n";
+
     }
 
-    void processNode(aiNode* node, const aiScene* scene)
+    void processNode(aiNode* node, const aiScene* scene, const glm::mat4& parentTransform = glm::mat4(1.0f))
     {
+        glm::mat4 nodeTransform = parentTransform * AssimpToGlmMat4(node->mTransformation);
+
         for (unsigned int i = 0; i < node->mNumMeshes; i++)
         {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-            meshes.push_back(processMesh(mesh, scene));
+            meshes.push_back(processMesh(mesh, scene, nodeTransform));
         }
+
         for (unsigned int i = 0; i < node->mNumChildren; i++)
         {
-            processNode(node->mChildren[i], scene);
+            processNode(node->mChildren[i], scene, nodeTransform);
         }
-
     }
 
-    ModelMesh processMesh(aiMesh* mesh, const aiScene* scene)
+    ModelMesh processMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& transform)
     {
         vector<Vertex> vertices;
         vector<unsigned int> indices;
@@ -100,17 +115,14 @@ private:
         {
             Vertex vertex;
             glm::vec3 vector;
-            vector.x = mesh->mVertices[i].x;
-            vector.y = mesh->mVertices[i].y;
-            vector.z = mesh->mVertices[i].z;
-            vertex.position = vector;
+            glm::vec4 pos = transform * glm::vec4(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z, 1.0f);
+            vertex.position = glm::vec3(pos);
 
             if (mesh->HasNormals())
             {
-                vector.x = mesh->mNormals[i].x;
-                vector.y = mesh->mNormals[i].y;
-                vector.z = mesh->mNormals[i].z;
-                vertex.normal = vector;
+                glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
+                glm::vec3 norm = normalMatrix * glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+                vertex.normal = glm::normalize(norm);
             }
 
             if (mesh->mTextureCoords[0]) 
@@ -140,6 +152,7 @@ private:
             for (unsigned int j = 0; j < face.mNumIndices; j++)
                 indices.push_back(face.mIndices[j]);
         }
+
 
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
         vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
@@ -210,6 +223,41 @@ private:
         }
     }
 
+    void ReadNodeHierarchy(const aiNode* node, const glm::mat4& parentTransform)
+    {
+        glm::mat4 nodeTransform = AssimpToGlmMat4(node->mTransformation);
+        glm::mat4 globalTransform = parentTransform * nodeTransform;
+        std::string nodeName(node->mName.data);
+        if (m_BoneMapping.find(nodeName) != m_BoneMapping.end()) {
+            int boneIndex = m_BoneMapping[nodeName];
+            m_BoneInfo[boneIndex].finalTransform =
+                globalInverseTransform * globalTransform * m_BoneInfo[boneIndex].offset;
+        }
+        for (unsigned int i = 0; i < node->mNumChildren; i++) {
+            ReadNodeHierarchy(node->mChildren[i], globalTransform);
+        }
+    }
+
+    void SetBoneTransforms(Shader& shader) {
+        shader.use();
+        for (int i = 0; i < m_BoneCount; ++i) {
+            std::string name = "boneTransforms[" + std::to_string(i) + "]";   
+            GLint loc = glGetUniformLocation(shader.ID, name.c_str());
+            if (loc != -1) {
+                glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(m_BoneInfo[i].finalTransform));
+            }
+        }
+    }
+
+    void InitializeBoneTransforms() {
+        for (auto& bone : m_BoneInfo) {
+            bone.finalTransform = glm::mat4(1.0f);
+        }
+        if (m_Scene && m_Scene->mRootNode) {
+            ReadNodeHierarchy(m_Scene->mRootNode, glm::mat4(1.0f));
+        }
+    }
+
 };
 
 glm::mat4 AssimpToGlmMat4(const aiMatrix4x4& from) {
@@ -276,6 +324,7 @@ unsigned int TextureFromFile(const char* path, const string& directory, bool gam
 }
 
 
+
 AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes) {
     AABB result;
     result.min = glm::vec3(FLT_MAX);
@@ -291,6 +340,8 @@ AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes) {
     }
     return result;
 }
+
+
 
 bool CheckModelCollision(Model& model, Camera& camera) {
     bool collided = false;

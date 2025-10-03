@@ -9,7 +9,7 @@ layout (location = 4) in vec4 aWeights;
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
-uniform mat4 boneTransforms[100]; // MAX_BONES = 100 (adjust to your needs)
+uniform mat4 boneTransforms[100];
 
 out vec2 TexCoords;
 out vec3 FragPos;
@@ -17,7 +17,6 @@ out vec3 Normal;
 
 void main()
 {
-    // Skinning: blend vertex with bone transforms
     mat4 boneTransform = mat4(0.0);
     boneTransform += boneTransforms[aBoneIDs[0]] * aWeights[0];
     boneTransform += boneTransforms[aBoneIDs[1]] * aWeights[1];
