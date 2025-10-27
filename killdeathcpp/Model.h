@@ -18,6 +18,10 @@ unsigned int TextureFromFile(const char* path, const string& directory, bool gam
 AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes);
 glm::mat4 AssimpToGlmMat4(const aiMatrix4x4& from);
 void setVertexBoneData(Vertex& vertex, int boneID, float weight);
+glm::quat InterpolateRotation(float animationTime, const aiNodeAnim* nodeAnim);
+glm::vec3 InterpolateScaling(float animationTime, const aiNodeAnim* nodeAnim);
+glm::vec3 InterpolatePosition(float animationTime, const aiNodeAnim* nodeAnim);
+const aiNodeAnim* FindNodeAnim(const aiAnimation* animation, const std::string& nodeName);
 
 class Model
 {
@@ -33,20 +37,23 @@ public:
     std::vector<BoneInfo> m_BoneInfo;
     int m_BoneCount = 0;
     glm::mat4 globalInverseTransform;
-    const aiScene* m_Scene = nullptr;
+    const aiScene* scene = nullptr;
+	bool loading = true;
+    bool hasBones = false;
 
     Model(string const& path, bool gamma = false) : gammaCorrection(gamma)
     {
         loadModel(path);
         coarse_AABB = computeUnionHitbox(meshes);
-        InitializeBoneTransforms();
+       
     }
     void Draw(Shader& shader)
     {
+
         orientation.updateShader(&shader);
         SetBoneTransforms(shader);
-        std::cout << directory <<"model directory \n";
-        shader.PrintDebugUniforms();
+        //std::cout << directory << "model directory \n";
+        //shader.PrintDebugUniforms();
         for (unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].Draw(shader);
     }
@@ -76,18 +83,25 @@ public:
 private:
     void loadModel(string const& path)
     {
-        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
+        scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
         {
             cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << endl;
             return;
         }
-        m_Scene = scene;
         globalInverseTransform = glm::inverse(AssimpToGlmMat4(scene->mRootNode->mTransformation));
         directory = path.substr(0, path.find_last_of('/'));
         processNode(scene->mRootNode, scene);
-        std::cout << "Root node transform:\n"
-            << glm::to_string(AssimpToGlmMat4(scene->mRootNode->mTransformation)) << "\n";
+
+        hasBones = (scene->mNumAnimations > 0);
+        for (unsigned int i = 0; i < scene->mNumMeshes && !hasBones; ++i) {
+            if (scene->mMeshes[i]->mNumBones > 0)
+                hasBones = true;
+        }
+
+        if (hasBones) InitializeBoneTransforms();
+
+        loading = false;
 
     }
 
@@ -97,21 +111,17 @@ private:
         for (unsigned int i = 0; i < node->mNumMeshes; i++)
         {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-            meshes.push_back(processMesh(mesh, scene, nodeTransform));
+            meshes.push_back(processMesh(mesh, scene, parentTransform));
         }
 
         for (unsigned int i = 0; i < node->mNumChildren; i++)
         {
-            processNode(node->mChildren[i], scene, nodeTransform);
+            processNode(node->mChildren[i], scene, parentTransform);
         }
     }
 
     ModelMesh processMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& transform)
     {
-        std::cout << "Processing mesh: " << (mesh->mName.length > 0 ? mesh->mName.C_Str() : "<unnamed>")
-            << " with " << mesh->mNumVertices << " vertices and "
-            << mesh->mNumFaces << " faces." << std::endl;
-
         vector<Vertex> vertices;
         vector<unsigned int> indices;
         vector<Texture> textures;
@@ -155,7 +165,6 @@ private:
 
             vertices.push_back(vertex);
         }
-        std::cout << "  -> Collected " << vertices.size() << " vertices." << std::endl;
 
         for (unsigned int i = 0; i < mesh->mNumFaces; i++)
         {
@@ -163,7 +172,7 @@ private:
             for (unsigned int j = 0; j < face.mNumIndices; j++)
                 indices.push_back(face.mIndices[j]);
         }
-        std::cout << "  -> Collected " << indices.size() << " indices." << std::endl;
+
 
 
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
@@ -175,9 +184,7 @@ private:
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
         std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
-        std::cout << "  -> Loaded " << textures.size() << " textures for this mesh." << std::endl;
-        extractBoneWeights(vertices, mesh, scene);
-        std::cout << "  -> Extracted bone weights for mesh." << std::endl;
+        if (hasBones)extractBoneWeights(vertices, mesh, scene);
         return ModelMesh(vertices, indices, textures);
     }
 
@@ -212,9 +219,7 @@ private:
     }
 
     void extractBoneWeights(std::vector<Vertex>& vertices, aiMesh* mesh, const aiScene* scene) {
-        std::cout << "Extracting bone weights for mesh: "
-            << (mesh->mName.length > 0 ? mesh->mName.C_Str() : "<unnamed>")
-            << " (" << mesh->mNumBones << " bones)" << std::endl;
+        std::cout << "Extracting bone weights for mesh: " << mesh->mName.C_Str() << std::endl;
         for (unsigned int i = 0; i < mesh->mNumBones; i++) {
             aiBone* bone = mesh->mBones[i];
             std::string boneName(bone->mName.data);
@@ -226,10 +231,7 @@ private:
                 bi.offset = AssimpToGlmMat4(bone->mOffsetMatrix);
                 m_BoneInfo.push_back(bi);
                 m_BoneCount++;
-                std::cout << "  [New Bone] " << boneName
-                    << " assigned index " << boneIndex << std::endl;
                 glm::mat4 offsetMat = bi.offset;
-                std::cout << "    Offset matrix (inverse bind pose):" << std::endl;
                 for (int r = 0; r < 4; r++) {
                     std::cout << "      ";
                     for (int c = 0; c < 4; c++) {
@@ -240,8 +242,6 @@ private:
             }
             else {
                 boneIndex = m_BoneMapping[boneName];
-                std::cout << "  [Existing Bone] " << boneName
-                    << " re-used index " << boneIndex << std::endl;
             }
 
             for (unsigned int j = 0; j < bone->mNumWeights; j++) {
@@ -270,7 +270,7 @@ private:
     void SetBoneTransforms(Shader& shader) {
         shader.use();
         for (int i = 0; i < m_BoneCount; ++i) {
-            std::string name = "boneTransforms[" + std::to_string(i) + "]";   
+            std::string name = "bones[" + std::to_string(i) + "]";
             GLint loc = glGetUniformLocation(shader.ID, name.c_str());
             if (loc != -1) {
                 glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(m_BoneInfo[i].finalTransform));
@@ -282,8 +282,8 @@ private:
         for (auto& bone : m_BoneInfo) {
             bone.finalTransform = glm::mat4(1.0f);
         }
-        if (m_Scene && m_Scene->mRootNode) {
-            ReadNodeHierarchy(m_Scene->mRootNode, glm::mat4(1.0f));
+        if (scene && scene->mRootNode) {
+            ReadNodeHierarchy(scene->mRootNode, glm::mat4(1.0f));
         }
     }
 
@@ -331,7 +331,7 @@ private:
 
 glm::vec3 InterpolatePosition(float animationTime, const aiNodeAnim* nodeAnim) {
     if (nodeAnim->mNumPositionKeys == 1)
-        return glm::vec3(nodeAnim->mPositionKeys[0].mValue.x,nodeAnim->mPositionKeys[0].mValue.y,nodeAnim->mPositionKeys[0].mValue.z);
+        return glm::vec3(nodeAnim->mPositionKeys[0].mValue.x, nodeAnim->mPositionKeys[0].mValue.y, nodeAnim->mPositionKeys[0].mValue.z);
     for (unsigned int i = 0; i < nodeAnim->mNumPositionKeys - 1; i++) {
         if (animationTime < (float)nodeAnim->mPositionKeys[i + 1].mTime) {
             float t1 = (float)nodeAnim->mPositionKeys[i].mTime;
@@ -344,7 +344,7 @@ glm::vec3 InterpolatePosition(float animationTime, const aiNodeAnim* nodeAnim) {
             return glm::vec3(result.x, result.y, result.z);
         }
     }
-    return glm::vec3(0.0f); 
+    return glm::vec3(0.0f);
 }
 
 glm::quat InterpolateRotation(float animationTime, const aiNodeAnim* nodeAnim) {
@@ -404,6 +404,7 @@ void setVertexBoneData(Vertex& vertex, int boneID, float weight) {
         if (vertex.m_BoneIDs[i] < 0) {
             vertex.m_BoneIDs[i] = boneID;
             vertex.m_Weights[i] = weight;
+			printf("Assigned boneID %d with weight %f to vertex\n", boneID, weight);
         }
     }
 }

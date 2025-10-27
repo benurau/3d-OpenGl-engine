@@ -86,7 +86,7 @@ int main(int argc, char* argv[]){
     shaders["materialLighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\materialLighting.fs");
     shaders["textureLighting"] = Shader("..\\shaders\\lightingMap.vs", "..\\shaders\\lightingMap.fs");
     shaders["model_Load"] = Shader("..\\shaders\\model_load.vs", "..\\shaders\\model_load.fs");
-    shaders["animation"] = Shader("..\\shaders\\ModelAnimation.vs", "..\\shaders\\ModelAnimation.fs");
+    shaders["animation"] = Shader("..\\shaders\\animation.vs", "..\\shaders\\animation.fs");
 
     Texture scarywall = { background, "diffusion1", "..\\assets\\background.bmp" };
 
@@ -97,7 +97,7 @@ int main(int argc, char* argv[]){
 
 
     Model glock = Model("..\\models\\glock\\scene.gltf");
-    Model backpack = Model("..\\models\\backpack\\scene.gltf");
+    Model backpack = Model("..\\models\\backpack\\backpack.gltf");
     Model chair = Model("..\\models\\chair\\scene.gltf");
 
 
@@ -133,8 +133,9 @@ int main(int argc, char* argv[]){
     backpack.movePos(glm::vec3(-3.0f, -0.5f, -0.5f));
     chair.changeSize(glm::vec3(2.0f, 2.0f, 2.0f));
     chair.movePos(glm::vec3(3.0f, -0.5f, -0.5f));
-    glock.changeSize(glm::vec3(2.0f, 2.0f, 2.0f));
     glock.movePos(glm::vec3(3.0f, -0.5f, -0.5f));
+
+
 
     shaders["textureLighting"].use();
     shaders["textureLighting"].setVec3("light.position", glm::vec3(1.0f, 0.5f, 1.0f));
@@ -153,12 +154,15 @@ int main(int argc, char* argv[]){
     basicLight.diffuse = diffuseColor;
     basicLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
     
+	while (glock.loading) {
+		glfwPollEvents();
+	}
+
     silver.vec3Uniforms["material.ambient"]  = glm::vec3(1.0f, 0.5f, 0.31f);
     silver.vec3Uniforms["material.diffuse"]  = glm::vec3(1.0f, 0.5f, 0.31f);
     silver.vec3Uniforms["material.specular"] = glm::vec3(0.5f, 0.5f, 0.5f);
     silver.floatUniforms["material.shininess"] = 32.0f;
     glEnable(GL_DEPTH_TEST);
-
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
