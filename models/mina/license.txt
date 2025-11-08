@@ -1,0 +1,11 @@
+Model Information:
+* title:	Mina Dance of Death (AOV)
+* source:	https://sketchfab.com/3d-models/mina-dance-of-death-aov-9a2ff8146a6444aeaa5d597735c4e4e6
+* author:	PetalThePotato (https://sketchfab.com/PetalThePotato)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Mina Dance of Death (AOV)" (https://sketchfab.com/3d-models/mina-dance-of-death-aov-9a2ff8146a6444aeaa5d597735c4e4e6) by PetalThePotato (https://sketchfab.com/PetalThePotato) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

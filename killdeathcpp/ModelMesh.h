@@ -15,6 +15,7 @@ public:
     vector<Vertex>       vertices;
     vector<unsigned int> indices;
     vector<Texture>      textures;
+    glm::mat4 modelMatrix;
     HitBox hitbox;
     unsigned int VAO;
 

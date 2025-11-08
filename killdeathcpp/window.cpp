@@ -21,14 +21,6 @@ void errorCallback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
 }
 
-void printMat4(const glm::mat4& mat) {
-    for (int row = 0; row < 4; ++row) {
-        for (int col = 0; col < 4; ++col) {
-            std::cout << mat[col][row] << " "; // GLM stores in column-major order
-        }
-        std::cout << "\n";
-    }
-}
 
 void processKeyboard(GLFWwindow* window);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -86,7 +78,7 @@ int main(int argc, char* argv[]){
     shaders["materialLighting"] = Shader("..\\shaders\\basiclighting.vs", "..\\shaders\\materialLighting.fs");
     shaders["textureLighting"] = Shader("..\\shaders\\lightingMap.vs", "..\\shaders\\lightingMap.fs");
     shaders["model_Load"] = Shader("..\\shaders\\model_load.vs", "..\\shaders\\model_load.fs");
-    shaders["animation"] = Shader("..\\shaders\\ModelAnimation.vs", "..\\shaders\\ModelAnimation.fs");
+    shaders["animation"] = Shader("..\\shaders\\animation.vs", "..\\shaders\\animation.fs");
 
     Texture scarywall = { background, "diffusion1", "..\\assets\\background.bmp" };
 
@@ -97,9 +89,9 @@ int main(int argc, char* argv[]){
 
 
     Model glock = Model("..\\models\\glock\\scene.gltf");
-    Model backpack = Model("..\\models\\backpack\\scene.gltf");
+    Model backpack = Model("..\\models\\backpack\\backpack.gltf");
     Model chair = Model("..\\models\\chair\\scene.gltf");
-
+    Model mina = Model("..\\models\\mina\\scene.gltf");
 
     DirLight basicLight;
 
@@ -129,12 +121,11 @@ int main(int argc, char* argv[]){
     materialLightingObject.movePos(glm::vec3(1.0f, -0.5f, 3.0f));
     textureLightingObject.movePos(glm::vec3(1.0f, -0.5f, 4.0f));
 
-    backpack.changeSize(glm::vec3(-0.99f, -0.99f, -0.99f));
     backpack.movePos(glm::vec3(-3.0f, -0.5f, -0.5f));
     chair.changeSize(glm::vec3(2.0f, 2.0f, 2.0f));
     chair.movePos(glm::vec3(3.0f, -0.5f, -0.5f));
-    glock.changeSize(glm::vec3(2.0f, 2.0f, 2.0f));
-    glock.movePos(glm::vec3(3.0f, -0.5f, -0.5f));
+    mina.movePos(glm::vec3(3.0f, -0.5f, -0.5f));
+
 
     shaders["textureLighting"].use();
     shaders["textureLighting"].setVec3("light.position", glm::vec3(1.0f, 0.5f, 1.0f));
@@ -153,12 +144,13 @@ int main(int argc, char* argv[]){
     basicLight.diffuse = diffuseColor;
     basicLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
     
+
+
     silver.vec3Uniforms["material.ambient"]  = glm::vec3(1.0f, 0.5f, 0.31f);
     silver.vec3Uniforms["material.diffuse"]  = glm::vec3(1.0f, 0.5f, 0.31f);
     silver.vec3Uniforms["material.specular"] = glm::vec3(0.5f, 0.5f, 0.5f);
     silver.floatUniforms["material.shininess"] = 32.0f;
     glEnable(GL_DEPTH_TEST);
-
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
@@ -170,10 +162,11 @@ int main(int argc, char* argv[]){
         bool collided = false;
         glm::vec3 originalMovement = camera.movement;    
 
-        //backpack.orientation.changeView(camera.GetViewMatrix());
-        //backpack.Draw(shaders["model_Load"]);
-		glock.orientation.changeView(camera.GetViewMatrix());
-		glock.Draw(shaders["animation"]);
+        backpack.orientation.changeView(camera.GetViewMatrix());
+        backpack.Draw(shaders["model_Load"]);
+		//glock.orientation.changeView(camera.GetViewMatrix());
+		//glock.Draw(shaders["animation"]);
+       // mina.Draw(shaders["animation"]);
 
         materialLightingObject.orientation.changeView(camera.GetViewMatrix());
         basicLight.SetLightUniforms(shaders["materialLighting"], "light");

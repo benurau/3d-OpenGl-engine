@@ -5,6 +5,7 @@
 #include <string>
 
 #define MAX_BONE_INFLUENCE 4
+#define MAX_BONE_WEIGHTS 100
 
 
 struct Vertex {
