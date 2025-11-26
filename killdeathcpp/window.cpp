@@ -87,7 +87,6 @@ int main(int argc, char* argv[]){
     Material basic = Material(&shaders["quad3d"]);
     TextureLight.textureUniforms["material.texture_diffuse1"] = scarywall;
 
-
     Model glock = Model("..\\models\\glock\\scene.gltf");
     Model backpack = Model("..\\models\\backpack\\backpack.gltf");
     Model chair = Model("..\\models\\chair\\scene.gltf");
@@ -124,8 +123,7 @@ int main(int argc, char* argv[]){
     backpack.movePos(glm::vec3(-3.0f, -0.5f, -0.5f));
     chair.changeSize(glm::vec3(2.0f, 2.0f, 2.0f));
     chair.movePos(glm::vec3(3.0f, -0.5f, -0.5f));
-    mina.movePos(glm::vec3(3.0f, -0.5f, -0.5f));
-
+    mina.movePos(glm::vec3(5.0f, -0.5f, -0.5f));
 
     shaders["textureLighting"].use();
     shaders["textureLighting"].setVec3("light.position", glm::vec3(1.0f, 0.5f, 1.0f));
@@ -164,9 +162,11 @@ int main(int argc, char* argv[]){
 
         backpack.orientation.changeView(camera.GetViewMatrix());
         backpack.Draw(shaders["model_Load"]);
+        mina.orientation.changeView(camera.GetViewMatrix());
+
+        mina.Draw(shaders["animation"]);
 		//glock.orientation.changeView(camera.GetViewMatrix());
 		//glock.Draw(shaders["animation"]);
-       // mina.Draw(shaders["animation"]);
 
         materialLightingObject.orientation.changeView(camera.GetViewMatrix());
         basicLight.SetLightUniforms(shaders["materialLighting"], "light");

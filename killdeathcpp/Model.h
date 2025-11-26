@@ -6,8 +6,10 @@
 #include <assimp/postprocess.h>
 #include "stb_image.h"
 #include "ModelMesh.h"
+#include "Camera.h"
 #include <filesystem>
 #include <glm/gtx/quaternion.hpp>
+#include <map>
 
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false);
 AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes);
@@ -19,59 +21,34 @@ struct BoneInfo
     glm::mat4 offset;
 };
 
-void printAnimationData(const aiScene* scene)
-{
-    std::cout << "Scene has " << scene->mNumAnimations << " animations\n";
-
-    for (unsigned int a = 0; a < scene->mNumAnimations; a++)
-    {
-        const aiAnimation* anim = scene->mAnimations[a];
-        std::cout << "Animation " << a << ": " << anim->mName.C_Str() << "\n";
-        std::cout << "  Duration: " << anim->mDuration
-            << " ticks, TicksPerSecond: " << anim->mTicksPerSecond << "\n";
-        std::cout << "  Channels: " << anim->mNumChannels << "\n";
-
-        for (unsigned int c = 0; c < anim->mNumChannels; c++)
-        {
-            const aiNodeAnim* channel = anim->mChannels[c];
-            std::cout << "    Node: " << channel->mNodeName.C_Str() << "\n";
-            std::cout << "      Positions: " << channel->mNumPositionKeys << "\n";
-            std::cout << "      Rotations: " << channel->mNumRotationKeys << "\n";
-            std::cout << "      Scalings:  " << channel->mNumScalingKeys << "\n";
-
-            // Example: print first key of each type
-            if (channel->mNumPositionKeys > 0) {
-                aiVector3D pos = channel->mPositionKeys[0].mValue;
-                std::cout << "        First pos: ("
-                    << pos.x << ", " << pos.y << ", " << pos.z << ")\n";
-            }
-            if (channel->mNumRotationKeys > 0) {
-                aiQuaternion rot = channel->mRotationKeys[0].mValue;
-                std::cout << "        First rot (quat): ("
-                    << rot.x << ", " << rot.y << ", " << rot.z << ", " << rot.w << ")\n";
-            }
-            if (channel->mNumScalingKeys > 0) {
-                aiVector3D scl = channel->mScalingKeys[0].mValue;
-                std::cout << "        First scale: ("
-                    << scl.x << ", " << scl.y << ", " << scl.z << ")\n";
-            }
-        }
+void PrintMat4(const glm::mat4& m) {
+    for (int i = 0; i < 4; i++) {
+        std::cout << m[i][0] << " "
+            << m[i][1] << " "
+            << m[i][2] << " "
+            << m[i][3] << std::endl;
     }
 }
 
-
+inline glm::mat4 aiMatrixToGlm(const aiMatrix4x4& from)
+{
+    glm::mat4 to;
+    to[0][0] = from.a1; to[1][0] = from.a2; to[2][0] = from.a3; to[3][0] = from.a4;
+    to[0][1] = from.b1; to[1][1] = from.b2; to[2][1] = from.b3; to[3][1] = from.b4;
+    to[0][2] = from.c1; to[1][2] = from.c2; to[2][2] = from.c3; to[3][2] = from.c4;
+    to[0][3] = from.d1; to[1][3] = from.d2; to[2][3] = from.d3; to[3][3] = from.d4;
+    return to;
+}
 
 class Model
 {
 public:
     vector<Texture> textures_loaded;
     vector<ModelMesh>    meshes;
-    Assimp::Importer importer;
     string directory;
     bool gammaCorrection;
     ObjectOrientation orientation;
     AABB coarse_AABB;
-
 
     Model(string const& path, bool gamma = false) : gammaCorrection(gamma)
     {
@@ -91,8 +68,6 @@ public:
         }
     }
 
-
-
     void rotate(const glm::vec3& angleDelta) {
         orientation.rotate(angleDelta);
         updateMeshHitboxes();
@@ -110,25 +85,19 @@ public:
     }
     void updateMeshHitboxes() {
         for (unsigned int i = 0; i < meshes.size(); i++)
-            meshes[i].hitbox.updateModelMatrix(orientation.modelMatrix);
+            meshes[i].hitbox.updateModelMatrix(orientation.modelMatrix * meshes[i].modelMatrix);
     }
 
-private:
-    std::unordered_map<string, BoneInfo> m_BoneInfoMap;
-    int m_BoneCounter = 0;
     auto& GetBoneInfoMap() { return m_BoneInfoMap; }
     int& GetBoneCount() { return m_BoneCounter; }
-        void SetVertexBoneDataToDefault(Vertex& vertex)
-    {
-        for (int i = 0; i < MAX_BONE_WEIGHTS; i++)
-        {
-            vertex.m_BoneIDs[i] = -1;
-            vertex.m_Weights[i] = 0.0f;
-        }
-    }
+
+private:
+    std::map<string, BoneInfo> m_BoneInfoMap;
+    int m_BoneCounter = 0;
 
     void loadModel(string const& path)
     {
+        Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
         {
@@ -136,7 +105,6 @@ private:
             return;
         }
         directory = path.substr(0, path.find_last_of('/'));
-        printAnimationData(scene);
         glm::mat4 globalScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
         processNode(scene->mRootNode, scene, globalScale);
     }
@@ -156,6 +124,15 @@ private:
         }
     }
 
+    void SetVertexBoneDataToDefault(Vertex& vertex)
+    {
+        for (int i = 0; i < MAX_BONE_INFLUENCE; i++)
+        {
+            vertex.m_BoneIDs[i] = -1;
+            vertex.m_Weights[i] = 0.0f;
+        }
+    }
+
     ModelMesh processMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& parentTransform)
     {
         vector<Vertex> vertices;
@@ -166,7 +143,7 @@ private:
         {
             Vertex vertex;
             glm::vec3 vector;
-
+            SetVertexBoneDataToDefault(vertex);
             vector.x = mesh->mVertices[i].x;
             vector.y = mesh->mVertices[i].y;
             vector.z = mesh->mVertices[i].z;
@@ -218,6 +195,7 @@ private:
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
         std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+        ExtractBoneWeightForVertices(vertices, mesh, scene);
         ModelMesh model = ModelMesh(vertices, indices, textures);
         model.modelMatrix = parentTransform;
         return model;
@@ -225,7 +203,7 @@ private:
 
     void SetVertexBoneData(Vertex& vertex, int boneID, float weight)
     {
-        for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
+        for (int i = 0; i < MAX_BONE_INFLUENCE; ++i)
         {
             if (vertex.m_BoneIDs[i] < 0)
             {
@@ -236,24 +214,27 @@ private:
         }
     }
 
-    void ExtractBoneWeightForVertices(std::vector& vertices, aiMesh* mesh, const aiScene* scene)
+    void ExtractBoneWeightForVertices(std::vector<Vertex>& vertices, aiMesh* mesh, const aiScene* scene)
     {
+        auto& boneInfoMap = m_BoneInfoMap;
+        int& boneCount = m_BoneCounter;
+
         for (int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
         {
             int boneID = -1;
             std::string boneName = mesh->mBones[boneIndex]->mName.C_Str();
-            if (m_BoneInfoMap.find(boneName) == m_BoneInfoMap.end())
+            if (boneInfoMap.find(boneName) == boneInfoMap.end())
             {
                 BoneInfo newBoneInfo;
-                newBoneInfo.id = m_BoneCounter;
+                newBoneInfo.id = boneCount;
                 newBoneInfo.offset = aiMatrixToGlm(mesh->mBones[boneIndex]->mOffsetMatrix);
-                m_BoneInfoMap[boneName] = newBoneInfo;
-                boneID = m_BoneCounter;
-                m_BoneCounter++;
+                boneInfoMap[boneName] = newBoneInfo;
+                boneID = boneCount;
+                boneCount++;
             }
             else
             {
-                boneID = m_BoneInfoMap[boneName].id;
+                boneID = boneInfoMap[boneName].id;
             }
             assert(boneID != -1);
             auto weights = mesh->mBones[boneIndex]->mWeights;
@@ -317,7 +298,7 @@ unsigned int TextureFromFile(const char* path, const string& directory, bool gam
     unsigned char* data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
     if (data)
     {
-        GLenum format;
+        GLenum format = 0;
         if (nrComponents == 1)
             format = GL_RED;
         else if (nrComponents == 3)
@@ -346,7 +327,6 @@ unsigned int TextureFromFile(const char* path, const string& directory, bool gam
 }
 
 
-
 AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes) {
     AABB result;
     result.min = glm::vec3(FLT_MAX);
@@ -363,15 +343,6 @@ AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes) {
     return result;
 }
 
-glm::mat4 aiMatrixToGlm(const aiMatrix4x4& from)
-{
-    glm::mat4 to;
-    to[0][0] = from.a1; to[1][0] = from.a2; to[2][0] = from.a3; to[3][0] = from.a4;
-    to[0][1] = from.b1; to[1][1] = from.b2; to[2][1] = from.b3; to[3][1] = from.b4;
-    to[0][2] = from.c1; to[1][2] = from.c2; to[2][2] = from.c3; to[3][2] = from.c4;
-    to[0][3] = from.d1; to[1][3] = from.d2; to[2][3] = from.d3; to[3][3] = from.d4;
-    return to;
-}
 
 bool CheckModelCollision(Model& model, Camera& camera) {
     bool collided = false;

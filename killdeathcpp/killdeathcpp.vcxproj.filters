@@ -43,6 +43,9 @@
     <Filter Include="Header Files\RendererhFiles">
       <UniqueIdentifier>{2dcc151e-29b7-40e2-ba0a-527c2c009ed4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\animation">
+      <UniqueIdentifier>{dd5f89f4-aced-4f05-8df8-f36fe78c987a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\glad.c">
@@ -74,9 +77,6 @@
     </ClCompile>
     <ClCompile Include="Colissions.h">
       <Filter>Header Files\InteractionhFiles</Filter>
-    </ClCompile>
-    <ClCompile Include="Colissions.cpp">
-      <Filter>Source Files\InteractioncppFiles</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -130,6 +130,15 @@
     </ClInclude>
     <ClInclude Include="Geometry3D.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Animation.h">
+      <Filter>Header Files\animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Animator.h">
+      <Filter>Header Files\animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Bone.h">
+      <Filter>Header Files\animation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
