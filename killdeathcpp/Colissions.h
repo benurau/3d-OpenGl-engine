@@ -3,6 +3,9 @@
 
 #include "HitBox.h"
 
+
+
+
 inline bool point_Box_Colission(HitBox& box, glm::vec3 position, glm::vec3& Movement)
 {
     glm::vec3 newPosition = position + Movement;
@@ -143,6 +146,7 @@ inline std::vector<glm::vec3> computeVertexNormals(
     }
     return normals;
 }
+
 
 
 

@@ -3,17 +3,19 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include "stb_image.h"
-#include "ModelMesh.h"
 #include "Camera.h"
 #include <filesystem>
-#include <glm/gtx/quaternion.hpp>
 #include <map>
+#include "modelHelpers.h"
+#include "stb_image.h"
+#include <algorithm>
+#include "ObjectOrientation.h"
+#include "ModelMesh.h"
+
+
 
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false);
 AABB computeUnionHitbox(const std::vector<ModelMesh>& meshes);
-glm::mat4 aiMatrixToGlm(const aiMatrix4x4& from);
 
 struct BoneInfo
 {
@@ -21,24 +23,6 @@ struct BoneInfo
     glm::mat4 offset;
 };
 
-void PrintMat4(const glm::mat4& m) {
-    for (int i = 0; i < 4; i++) {
-        std::cout << m[i][0] << " "
-            << m[i][1] << " "
-            << m[i][2] << " "
-            << m[i][3] << std::endl;
-    }
-}
-
-inline glm::mat4 aiMatrixToGlm(const aiMatrix4x4& from)
-{
-    glm::mat4 to;
-    to[0][0] = from.a1; to[1][0] = from.a2; to[2][0] = from.a3; to[3][0] = from.a4;
-    to[0][1] = from.b1; to[1][1] = from.b2; to[2][1] = from.b3; to[3][1] = from.b4;
-    to[0][2] = from.c1; to[1][2] = from.c2; to[2][2] = from.c3; to[3][2] = from.c4;
-    to[0][3] = from.d1; to[1][3] = from.d2; to[2][3] = from.d3; to[3][3] = from.d4;
-    return to;
-}
 
 class Model
 {
@@ -58,7 +42,7 @@ public:
     void Draw(Shader& shader)
     {
 
-        orientation.updateShader(&shader);
+        shader.setObjectOrientation(orientation);
         //std::cout << directory << "model directory \n";
         //shader.PrintDebugUniforms();
         for (unsigned int i = 0; i < meshes.size(); i++) {
@@ -144,10 +128,7 @@ private:
             Vertex vertex;
             glm::vec3 vector;
             SetVertexBoneDataToDefault(vertex);
-            vector.x = mesh->mVertices[i].x;
-            vector.y = mesh->mVertices[i].y;
-            vector.z = mesh->mVertices[i].z;
-            vertex.position = vector;
+            vertex.position = aiVectorToGlm(mesh->mVertices[i]);
 
             if (mesh->HasNormals())
             {
@@ -162,20 +143,11 @@ private:
                 vec.x = mesh->mTextureCoords[0][i].x;
                 vec.y = mesh->mTextureCoords[0][i].y;
                 vertex.texCoords = vec;
-
-                vector.x = mesh->mTangents[i].x;
-                vector.y = mesh->mTangents[i].y;
-                vector.z = mesh->mTangents[i].z;
-                vertex.Tangent = vector;
-
-                vector.x = mesh->mBitangents[i].x;
-                vector.y = mesh->mBitangents[i].y;
-                vector.z = mesh->mBitangents[i].z;
-                vertex.Bitangent = vector;
+                //vertex.Tangent = aiVectorToGlm(mesh->mTangents[i]);
+                vertex.Bitangent = aiVectorToGlm(mesh->mBitangents[i]);
             }
             else
                 vertex.texCoords = glm::vec2(0.0f, 0.0f);
-
             vertices.push_back(vertex);
         }
 

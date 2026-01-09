@@ -1,16 +1,11 @@
 #include "renderer.h"
-#include <iostream>
 #include <cmath>
-#include <algorithm>
-#include <fstream>
-#include <sstream>
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-#include "misc.h"
+
 
 
 
 Renderer::Renderer(GLFWwindow* window) : window(window){}
+
 void Renderer::clear() {
     glClear(GL_COLOR_BUFFER_BIT);
 }
@@ -19,26 +14,68 @@ void Renderer::swapBuffers() {
     glfwSwapBuffers(window);
 }
 
+Material Renderer::ConvertGLTFMaterialToMaterial(const GLTFMaterialGPU& src, Shader* shader)
+{
+    Material mat(shader);
+    mat.vec3Uniforms["uEmissiveFactor"] = src.emissiveFactor;
+    mat.floatUniforms["uMetallicFactor"] = src.metallicFactor;
+    mat.floatUniforms["uRoughnessFactor"] = src.roughnessFactor;
+    mat.floatUniforms["uNormalScale"] = src.normalScale;
+    mat.vec4Uniforms["uBaseColorFactor"] = src.baseColorFactor;
+    if (src.baseColorTex.id != 0)
+        mat.textureUniforms["uBaseColorTex"] = src.baseColorTex;
+    if (src.metallicRoughnessTex.id != 0)
+        mat.textureUniforms["uMetallicRoughnessTex"] = src.metallicRoughnessTex;
+    if (src.normalTex.id != 0)
+        mat.textureUniforms["uNormalTex"] = src.normalTex;
+    if (src.occlusionTex.id != 0)
+        mat.textureUniforms["uOcclusionTex"] = src.occlusionTex;
+    if (src.emissiveTex.id != 0)
+        mat.textureUniforms["uEmissiveTex"] = src.emissiveTex;
+    mat.floatUniforms["uDoubleSided"] = src.doubleSided ? 1.0f : 0.0f;
 
-void Renderer::draw(const Mesh& mesh, Material& material){
+    return mat;
+}
+
+
+void Renderer::drawModel(tinyModel& model, ObjectOrientation& rootOrientation) {
+    for (const Node& node : model.orientationNodes) {
+        if (node.glMeshIndex < 0) continue; // Skip nodes without a mesh
+
+        Mesh& mesh = model.glMeshes[node.glMeshIndex];
+
+        glm::mat4 globalScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+
+        ObjectOrientation finalOrientation = rootOrientation;
+        finalOrientation.modelMatrix = rootOrientation.modelMatrix * node.localModelMat;
+
+        uint32_t matIndex = mesh.materialIndex + model.materialOffset;
+        if (matIndex >= materials.size()) {
+            std::cerr << "[Renderer] Invalid material index\n";
+            continue;
+        }
+        Material& mat = materials[matIndex];
+        draw(mesh, finalOrientation, mat);
+    }
+}
+
+
+void Renderer::draw(Mesh& mesh, ObjectOrientation& orientation, Material& material){
     if (!material.shader) {
         std::cerr << "[Draw] Error: Material has no shader.\n";
         return;
     }
 
-    //std::cout << "[Draw] Using shader ID: " << material.shader->ID << std::endl;
-
-    mesh.orientation.updateShader(material.shader);
+    material.shader->setObjectOrientation(orientation);
     checkGLError("setMat4(model)");
 
     material.apply();
     checkGLError("material.apply");
-
     //std::cout << "[Draw] Binding VAO ID: " << mesh.vao << std::endl;
+    //orientation.debugPrint();
     glBindVertexArray(mesh.vao);
     checkGLError("glBindVertexArray");
     //material.shader->PrintDebugUniforms();
-
     if (!mesh.indices.empty()) {
         //std::cout << "[Draw] Drawing with glDrawElements, count: " << mesh.indices.size() << std::endl;
         glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, 0);
@@ -46,17 +83,10 @@ void Renderer::draw(const Mesh& mesh, Material& material){
     }
     else {
         //std::cout << "[Draw] Drawing with glDrawArrays, count: " << mesh.totalVerticles << std::endl;
-        glDrawArrays(GL_TRIANGLES, 0, mesh.totalVerticles);
+        glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.size());
         checkGLError("glDrawArrays");
     }
-
     glBindVertexArray(0);
-    //std::cout << "[Draw] Unbound VAO." << std::endl;
-
-
-    glActiveTexture(GL_TEXTURE0);
-    checkGLError("activatetexture0");
-    //std::cout << "[Draw] Reset active texture to GL_TEXTURE0." << std::endl;
 }
 
 

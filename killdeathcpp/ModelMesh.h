@@ -24,7 +24,7 @@ public:
         this->vertices = vertices;
         this->indices = indices;
         this->textures = textures;
-        this->hitbox = HitBox(vertices, indices);
+        this->hitbox = HitBox(vertices, indices, glm::mat4(0.0f));
         setupMesh();
     }
 

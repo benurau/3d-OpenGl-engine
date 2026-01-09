@@ -1,5 +1,6 @@
 #include "ObjectOrientation.h"
-#include "Hitbox.h" // Assuming this exists and includes proper definitions
+#include "misc.h"
+#include "modelHelpers.h"
 
 ObjectOrientation::ObjectOrientation()
     : position(0.0f), rotation(0.0f), scale(1.0f),
@@ -18,7 +19,6 @@ void ObjectOrientation::changeSize(const glm::vec3& scaleFactor) {
 }
 
 void ObjectOrientation::movePos(const glm::vec3& delta) {
-    std::cout << delta.y;
     position += delta;
     updateModelMatrix();
 }
@@ -56,10 +56,13 @@ void ObjectOrientation::updateModelMatrix() {
     this->modelMatrix = trans;
 }
 
-void ObjectOrientation::updateShader(Shader* shader) const {
-    shader->use();
-    shader->setMat4("view", view);
-    shader->setMat4("projection", proj);
-    shader->setMat4("model", modelMatrix);
+void ObjectOrientation::debugPrint() {
+    printf("modelMatrix:     ");
+    PrintMat4(modelMatrix);
+    printf("view:  ");
+    PrintMat4(view);
+    printf("proj:     ");
+    PrintMat4(proj);
 }
+
 

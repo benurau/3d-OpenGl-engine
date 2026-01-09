@@ -50,7 +50,6 @@ public:
 			KeyPosition data;
 			data.position = GetGLMVec(aiPosition);
 			data.timeStamp = timeStamp;
-			printf("key position %f key timestamp %f \n", data.position, data.timeStamp);
 			m_Positions.push_back(data);
 		}
 
@@ -62,7 +61,6 @@ public:
 			KeyRotation data;
 			data.orientation = GetGLMQuat(aiOrientation);
 			data.timeStamp = timeStamp;
-			printf("key orientation %f key timestamp %f \n", data.orientation, data.timeStamp);
 			m_Rotations.push_back(data);
 		}
 
@@ -74,7 +72,6 @@ public:
 			KeyScale data;
 			data.scale = GetGLMVec(scale);
 			data.timeStamp = timeStamp;
-			printf("key scale %f key timestamp %f \n", data.scale, data.timeStamp);
 			m_Scales.push_back(data);
 		}
 	}
@@ -84,7 +81,6 @@ public:
 		glm::mat4 translation = InterpolatePosition(animationTime);
 		glm::mat4 rotation = InterpolateRotation(animationTime);
 		glm::mat4 scale = InterpolateScaling(animationTime);
-		printf("animationtime %f \n", animationTime);
 		m_LocalTransform = translation * rotation * scale;
 	}
 	glm::mat4 GetLocalTransform() { return m_LocalTransform; }

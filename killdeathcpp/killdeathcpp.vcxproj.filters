@@ -46,6 +46,9 @@
     <Filter Include="Header Files\animation">
       <UniqueIdentifier>{dd5f89f4-aced-4f05-8df8-f36fe78c987a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{27c87860-19d2-485b-b543-231951e64314}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\glad.c">
@@ -78,12 +81,15 @@
     <ClCompile Include="Colissions.h">
       <Filter>Header Files\InteractionhFiles</Filter>
     </ClCompile>
+    <ClCompile Include="modelHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty_impl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="misc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\Downloads\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Mesh.h">
@@ -140,8 +146,68 @@
     <ClInclude Include="Bone.h">
       <Filter>Header Files\animation</Filter>
     </ClInclude>
+    <ClInclude Include="tinyModel.h">
+      <Filter>Header Files\ObjecthFiles</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\shaders\animation.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\animation.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\basiclighting.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\basiclighting.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\light_cube.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\lightcube.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\lightcube.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\lightingMap.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\lightingMap.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\materialLighting.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\model_load.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\model_load.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\modelAnimation.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\modelAnimation.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\multiLight.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\quad3d.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\quad3d.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\gltfModel.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\gltfModel.vs">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

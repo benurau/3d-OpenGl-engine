@@ -3,9 +3,8 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
-#include "shader.h"
-#include "HitBox.h"
+
+
 
 
 class ObjectOrientation {
@@ -24,7 +23,7 @@ public:
     void changeView(glm::vec3 position);
     void changeView(glm::mat4 view);
     void changePerspective(float degrees);
-    void updateShader(Shader* shader) const;
+    void debugPrint();
     void setDefault();
 
 private:

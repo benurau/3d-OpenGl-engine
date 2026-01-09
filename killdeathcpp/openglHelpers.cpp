@@ -1,7 +1,8 @@
 #include "openglHelpers.h"
 #include <sstream>
 #include "stb_image.h"
-#include "shader.h"
+#include <iostream>
+
 
 std::string getGLErrorString(GLenum err) {
     switch (err) {
@@ -17,18 +18,21 @@ std::string getGLErrorString(GLenum err) {
         std::ostringstream ss;
         ss << "Unknown error (0x" << std::hex << err << ")";
         return ss.str();
+
     }
     }
 }
 
-std::string checkGLError(const std::string& label) {
+void checkGLError(const std::string& label) {
     GLenum err;
     std::ostringstream errorMessages;
     while ((err = glGetError()) != GL_NO_ERROR) {
         errorMessages << "[OpenGL Error] " << getGLErrorString(err)
             << " (" << err << ") after: " << label << "\n";
     }
-    return errorMessages.str();
+    auto error = errorMessages.str();
+    if (!error.empty())
+        std::cerr << error;
 }
 
 
@@ -36,7 +40,7 @@ GLuint generateVBO(const std::vector<Vertex>& vertices) {
     GLuint vbo = 0;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.empty() ? nullptr : vertices.data(), GL_STATIC_DRAW);
     checkGLError("generatevbo");
     return vbo;
 }
@@ -49,17 +53,15 @@ GLuint generateVAO() {
 }
 
 GLuint generateIBO(const std::vector<GLuint>& indices) {
-    assert(indices.size() > 0, "objectconstructor3 indices");
     GLuint IBO = 0;
     glGenBuffers(1, &IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.empty() ? nullptr : indices.data(), GL_STATIC_DRAW);
     checkGLError("generateibo");
     return IBO;
 }
 
-void bindToVao(GLuint vao, int vertexArray, int vecSize, int stride, int offset) {
-    glBindVertexArray(vao);
+void bindToVao(GLuint vertexArray, GLint vecSize, GLsizei stride, size_t offset) {
     glEnableVertexAttribArray(vertexArray);
     glVertexAttribPointer(vertexArray, vecSize, GL_FLOAT, GL_FALSE, stride, (void*)offset);
     checkGLError("bindtovao");

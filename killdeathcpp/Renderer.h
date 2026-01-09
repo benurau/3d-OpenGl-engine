@@ -2,12 +2,13 @@
 #define RENDERER_H
 
 
-#include "misc.h"
-#include <glad/glad.h>
+
+#include <glad/glad.h>    
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include "Material.h"
 #include "Mesh.h"
+#include "ObjectOrientation.h"
+#include "tinyModel.h"
+
 
 
 #define C_BPP         32
@@ -26,12 +27,14 @@ struct Light {
 
 class Renderer {
 public:
+    std::vector<Material> materials;
     Renderer(GLFWwindow* window);
 
     void clear();
     void swapBuffers();
-
-    void draw(const Mesh& mesh, Material& material);
+    void drawModel(tinyModel& model, ObjectOrientation& orientation);
+    Material ConvertGLTFMaterialToMaterial(const GLTFMaterialGPU& src, Shader* shader);
+    void draw(Mesh& mesh, ObjectOrientation& orientation, Material& material);
 
 private:
     GLFWwindow* window;

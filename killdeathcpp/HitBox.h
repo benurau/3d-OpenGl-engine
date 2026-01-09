@@ -7,11 +7,61 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 
+
+
 struct AABB {
     glm::vec3 min;
     glm::vec3 max;
+
+    AABB() {
+        min = glm::vec3(std::numeric_limits<float>::max());
+        max = glm::vec3(std::numeric_limits<float>::lowest());
+    }
+
+    void expand(const glm::vec3& p) {
+        min = glm::min(min, p);
+        max = glm::max(max, p);
+    }
 };
 
+inline AABB computeLocalAABB(const std::vector<Vertex>& vertices)
+{
+    AABB aabb;
+    aabb.min = glm::vec3(std::numeric_limits<float>::max());
+    aabb.max = glm::vec3(std::numeric_limits<float>::lowest());
+
+    for (const auto& v : vertices) {
+        aabb.min = glm::min(aabb.min, v.position);
+        aabb.max = glm::max(aabb.max, v.position);
+    }
+    return aabb;
+}
+
+inline AABB computeWorldAABB(const AABB& local, const glm::mat4& model)
+{
+    glm::vec3 corners[8] = {
+        {local.min.x, local.min.y, local.min.z},
+        {local.max.x, local.min.y, local.min.z},
+        {local.min.x, local.max.y, local.min.z},
+        {local.max.x, local.max.y, local.min.z},
+        {local.min.x, local.min.y, local.max.z},
+        {local.max.x, local.min.y, local.max.z},
+        {local.min.x, local.max.y, local.max.z},
+        {local.max.x, local.max.y, local.max.z},
+    };
+
+    AABB world;
+    world.min = glm::vec3(std::numeric_limits<float>::max());
+    world.max = glm::vec3(std::numeric_limits<float>::lowest());
+
+    for (const auto& c : corners) {
+        glm::vec3 wc = glm::vec3(model * glm::vec4(c, 1.0f));
+        world.min = glm::min(world.min, wc);
+        world.max = glm::max(world.max, wc);
+    }
+
+    return world;
+}
 
 class HitBox {
 public:
@@ -21,15 +71,13 @@ public:
     std::vector<GLuint> indices;
     glm::mat3 NormalMatrix;
     glm::mat4 ModelMatrix;
-    glm::mat4 projection;
-    glm::mat4 view;
 
     CTriangle* cTriangles;
     int cTrianglesCount;
     bool close;
 
     HitBox() {};
-    HitBox(std::vector<Vertex> vertices, std::vector<GLuint> indices) {
+    HitBox(std::vector<Vertex> vertices, std::vector<GLuint> indices, glm::mat4 modelMat) {
         this->vertices = vertices;
         this->indices = indices;      
         this->cTrianglesCount = indices.size()/3;

@@ -3,7 +3,6 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <string>
@@ -11,6 +10,7 @@
 #include <sstream>
 #include <iostream>
 #include "openglHelpers.h"
+#include "ObjectOrientation.h"
 
 
 
@@ -81,6 +81,16 @@ public:
         glDeleteShader(vertex);
         glDeleteShader(fragment);
     }
+    GLint getUniformLocation(const std::string& name) const
+    {
+        auto it = uniformLocationCache.find(name);
+        if (it != uniformLocationCache.end())
+            return it->second;
+
+        GLint loc = glGetUniformLocation(ID, name.c_str());
+        uniformLocationCache[name] = loc;
+        return loc;
+    }
     // activate the shader
     // ------------------------------------------------------------------------
     void use()
@@ -96,61 +106,59 @@ public:
     // ------------------------------------------------------------------------
     void setBool(const std::string& name, bool value) const
     {
-        GLint loc = glGetUniformLocation(ID, name.c_str());
+        GLint loc = getUniformLocation(name);
         if (loc != -1) {
-            glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+            glUniform1i(loc, (int)value);
             uniformValues[name] = value ? "true" : "false";
-        }
-        else {
-            std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
         }
     }
     // ------------------------------------------------------------------------
     void setInt(const std::string& name, int value) const
     {
-        GLint loc = glGetUniformLocation(ID, name.c_str());
+        GLint loc = getUniformLocation(name);
         if (loc != -1) {
-            glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+            glUniform1i(loc, value);
             uniformValues[name] = std::to_string(value);
-        }
-        else {
-            std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
         }
     }
     // ------------------------------------------------------------------------
     void setFloat(const std::string& name, float value) const
     {
-        GLint loc = glGetUniformLocation(ID, name.c_str());
+        GLint loc = getUniformLocation(name);
         if (loc != -1) {
-            glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+            glUniform1f(loc, value);
             uniformValues[name] = std::to_string(value);
         }
-        else {
-            std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
-        }
     }
-    void setVec3(const std::string& name, const glm::vec3& value) const {
-        GLint loc = glGetUniformLocation(ID, name.c_str());
+    void setVec3(const std::string& name, const glm::vec3& value) const
+    {
+        GLint loc = getUniformLocation(name);
         if (loc != -1) {
-            glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+            glUniform3fv(loc, 1, glm::value_ptr(value));
             uniformValues[name] = glm::to_string(value);
         }
-        else {
-            std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
-        }   
     }
-    void setMat4(const std::string& name, const glm::mat4& mat) const {
-        GLint loc = glGetUniformLocation(ID, name.c_str());
+    void setVec4(const std::string& name, const glm::vec4& value) const
+    {
+        GLint loc = getUniformLocation(name);
+        if (loc != -1) {
+            glUniform4fv(loc, 1, glm::value_ptr(value));
+        }
+    }
+    void setMat4(const std::string& name, const glm::mat4& mat) const
+    {
+        GLint loc = getUniformLocation(name);
         if (loc != -1) {
             glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mat));
             uniformValues[name] = glm::to_string(mat);
         }
-        else {
-            std::cerr << "[Shader] Uniform not found or inactive: " << name << std::endl;
-        }
     }
-    glm::mat4 getMat4(const GLchar* name) {
-        return glGetUniformLocation(ID, name);
+
+    void setObjectOrientation(ObjectOrientation& orientation) {
+        use();
+        setMat4("view", orientation.view);
+        setMat4("projection", orientation.proj);
+        setMat4("model", orientation.modelMatrix);
     }
 
     void PrintDebugUniforms() const {
@@ -162,6 +170,8 @@ public:
     }
 
 private:
+    mutable std::unordered_map<std::string, GLint> uniformLocationCache;
+
     void checkCompileErrors(GLuint shader, const std::string& type)
     {
         GLint success;

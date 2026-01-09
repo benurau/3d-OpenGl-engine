@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <string>
 
+
+
 #define MAX_BONE_INFLUENCE 4
 #define MAX_BONE_WEIGHTS 100
 
@@ -12,16 +14,19 @@ struct Vertex {
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec2 texCoords;
-    glm::vec3 Tangent;
+    glm::vec4 Tangent;
     glm::vec3 Bitangent;
     int m_BoneIDs[MAX_BONE_INFLUENCE];
     float m_Weights[MAX_BONE_INFLUENCE];
+    glm::uvec4 joints;
+    glm::vec4 weights;
 
     Vertex()
         : position(0.0f), normal(0.0f), texCoords(0.0f),
-        Tangent(0.0f), Bitangent(0.0f) {
+        Tangent(0.0f), Bitangent(0.0f), joints(0.0f), weights(0.0f) {
         std::memset(m_BoneIDs, 0, sizeof(m_BoneIDs));
         std::memset(m_Weights, 0, sizeof(m_Weights));
+
     }
 
     Vertex(const glm::vec3& pos, const glm::vec3& norm, const glm::vec2& tex)
@@ -31,8 +36,15 @@ struct Vertex {
         std::memset(m_Weights, 0, sizeof(m_Weights));
     }
 
+    Vertex(const glm::vec3& pos, const glm::vec3& norm, const glm::vec2& tex,const glm::uvec4& Joints,const glm::vec4& Weights)
+        : position(pos), normal(norm), texCoords(tex),
+        Tangent(0.0f), Bitangent(0.0f), joints(Joints), weights(Weights) {
+        std::memset(m_BoneIDs, 0, sizeof(m_BoneIDs));
+        std::memset(m_Weights, 0, sizeof(m_Weights));
+    }
+
     Vertex(const glm::vec3& pos, const glm::vec3& norm, const glm::vec2& tex,
-        const glm::vec3& tang, const glm::vec3& bitang,
+        const glm::vec4& tang, const glm::vec3& bitang,
         const int* boneIDs, const float* weights)
         : position(pos), normal(norm), texCoords(tex),
         Tangent(tang), Bitangent(bitang) {
@@ -41,8 +53,9 @@ struct Vertex {
     }
 };
 
+
 struct Texture {
-    unsigned int id;
+    unsigned int id = 0;
     std::string type;
     std::string path;
 };
