@@ -39,15 +39,13 @@ Material Renderer::ConvertGLTFMaterialToMaterial(const GLTFMaterialGPU& src, Sha
 
 
 void Renderer::drawModel(tinyModel& model, ObjectOrientation& rootOrientation) {
-    for (const Node& node : model.orientationNodes) {
-        if (node.glMeshIndex < 0) continue; // Skip nodes without a mesh
-
-        Mesh& mesh = model.glMeshes[node.glMeshIndex];
-
-        glm::mat4 globalScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+    for (const Node& node : model.nodes) {
+        if (node.glMeshIndex < 0) continue;
 
         ObjectOrientation finalOrientation = rootOrientation;
-        finalOrientation.modelMatrix = rootOrientation.modelMatrix * node.localModelMat;
+        finalOrientation.modelMatrix = glm::scale(rootOrientation.modelMatrix, glm::vec3(0.01f)) * node.globalMatrix;
+
+        Mesh& mesh = model.glMeshes[node.glMeshIndex];
 
         uint32_t matIndex = mesh.materialIndex + model.materialOffset;
         if (matIndex >= materials.size()) {
@@ -55,9 +53,11 @@ void Renderer::drawModel(tinyModel& model, ObjectOrientation& rootOrientation) {
             continue;
         }
         Material& mat = materials[matIndex];
+
         draw(mesh, finalOrientation, mat);
     }
 }
+
 
 
 void Renderer::draw(Mesh& mesh, ObjectOrientation& orientation, Material& material){

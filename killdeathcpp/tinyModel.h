@@ -4,11 +4,50 @@
 #include "HitBox.h"
 
 struct Node {
-    glm::mat4 localModelMat;
-    int glMeshIndex;
+    int parent = -1;
+    std::vector<int> children;
+
+    glm::vec3 translation{ 0.0f };
+    glm::quat rotation{ 1, 0, 0, 0 };
+    glm::vec3 scale{ 1.0f };
+
+    glm::mat4 localMatrix{ 1.0f };
+    glm::mat4 globalMatrix{ 1.0f };
+
+    int glMeshIndex = -1; 
+    int skinIndex = -1;  
 
     AABB localAABB;
     AABB worldAABB;
+};
+
+struct Skin {
+    std::vector<int> joints;       
+    std::vector<glm::mat4> inverseBind;  
+    std::vector<glm::mat4> jointMatrices; 
+};
+
+struct AnimationSampler {
+    std::vector<float> times;     
+    std::vector<glm::vec4> values; 
+};
+
+struct AnimationChannel {
+    enum class Path {
+        Translation,
+        Rotation,
+        Scale
+    };
+
+    int samplerIndex;
+    int nodeIndex;
+    Path path;
+};
+
+struct Animation {
+    std::vector<AnimationSampler> samplers;
+    std::vector<AnimationChannel> channels;
+    float duration = 0.0f;
 };
 
 class tinyModel {
@@ -16,7 +55,7 @@ public:
     tinygltf::Model model;
     std::vector<GLTFMaterialGPU> gpuMaterials;
     std::vector<Mesh> glMeshes;
-    std::vector<Node> orientationNodes;
+    std::vector<Node> nodes;
     int materialOffset;
 
     tinyModel(const std::string& path) {
@@ -28,17 +67,23 @@ public:
         gpuMaterials.resize(model.materials.size());
         for (size_t i = 0; i < model.materials.size(); ++i) {
             gpuMaterials[i] = ParseGLTFMaterial(model, model.materials[i]);
-        }
-        DebugPrintMaterial(gpuMaterials[0], 0);
-        for (int root : scene.nodes) {
-            processNode(root, glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)));
-        }
+        }      
+        loadMeshes();
+        loadNodes();   
+        updateNodeTransforms(nodes);
+    }
 
+    void updateNodeTransforms(std::vector<Node>& nodes) {
+        for (Node& n : nodes) {
+            if (n.parent == -1)
+                updateNodeGlobalRecursive(n, nodes);
+        }
     }
 
 private:
     tinygltf::TinyGLTF loader;
     std::string err, warn;
+    std::vector<int> meshNodeToGLMesh;
 
     void load_model(const std::string& path) {
         bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, path);
@@ -47,22 +92,73 @@ private:
         if (!ret) throw std::runtime_error("Failed to load glTF");
     }
 
-    void processNode(int nodeIndex, glm::mat4 parentTransform) {
-        const tinygltf::Node& node = model.nodes[nodeIndex];
-        glm::mat4 local = getNodeTransform(node);
-        glm::mat4 world = parentTransform * local;
-        if (node.mesh >= 0) {
-            const tinygltf::Mesh& mesh = model.meshes[node.mesh];
-            for (const tinygltf::Primitive& primitive : mesh.primitives) {
-                createGlMesh(model, primitive, world);
+    void loadNodes()
+    {
+        nodes.resize(model.nodes.size());
+
+        for (size_t i = 0; i < model.nodes.size(); ++i) {
+            const tinygltf::Node& src = model.nodes[i];
+            Node& dst = nodes[i];
+
+            dst.children = src.children;
+            dst.parent = -1;
+            if (src.mesh >= 0) {
+                dst.glMeshIndex = meshNodeToGLMesh[src.mesh];
+                //dst.localAABB = combinePrimitivesAABB(src.mesh);
             }
+            else {
+                dst.glMeshIndex = -1;
+            }
+            if (!src.matrix.empty()) {
+                glm::mat4 m = glm::make_mat4(src.matrix.data());
+                dst.translation = glm::vec3(m[3][0], m[3][1], m[3][2]);
+                dst.scale.x = glm::length(glm::vec3(m[0][0], m[0][1], m[0][2]));
+                dst.scale.y = glm::length(glm::vec3(m[1][0], m[1][1], m[1][2]));
+                dst.scale.z = glm::length(glm::vec3(m[2][0], m[2][1], m[2][2]));
+                glm::mat3 rotMat;
+                rotMat[0] = glm::vec3(m[0][0], m[0][1], m[0][2]) / dst.scale.x;
+                rotMat[1] = glm::vec3(m[1][0], m[1][1], m[1][2]) / dst.scale.y;
+                rotMat[2] = glm::vec3(m[2][0], m[2][1], m[2][2]) / dst.scale.z;
+                dst.rotation = glm::quat_cast(rotMat);
+            }
+            else {
+                dst.translation = src.translation.empty() ? glm::vec3(0.0f) : stdVec3ToGlm(src.translation);
+                dst.rotation = src.rotation.empty() ? glm::quat(1, 0, 0, 0)
+                    : glm::quat(src.rotation[3], src.rotation[0], src.rotation[1], src.rotation[2]);
+                dst.scale = src.scale.empty() ? glm::vec3(1.0f) : stdVec3ToGlm(src.scale);
+            }
+            dst.skinIndex = src.skin;
         }
-        for (int child : node.children) {
-            processNode(child, world);
+        for (size_t i = 0; i < nodes.size(); ++i)
+            for (int c : nodes[i].children)
+                nodes[c].parent = static_cast<int>(i);
+    }
+
+    void loadMeshes()
+    {
+        meshNodeToGLMesh.resize(model.meshes.size());
+        int glMeshCounter = 0;
+        for (size_t i = 0; i < model.meshes.size(); ++i) {
+            const tinygltf::Mesh& mesh = model.meshes[i];
+            meshNodeToGLMesh[i] = glMeshCounter; 
+            for (const auto& prim : mesh.primitives) {
+                createGlMesh(model, prim);
+                glMeshCounter++;
+            }
         }
     }
 
-    void createGlMesh( const tinygltf::Model& model, const tinygltf::Primitive& primitive, glm::mat4& totalTransform) {
+    void updateNodeGlobalRecursive(Node& node, std::vector<Node>& nodes) {
+        node.localMatrix = glm::translate(glm::mat4(1.0f), node.translation) * glm::mat4_cast(node.rotation) * glm::scale(glm::mat4(1.0f), node.scale);
+        if (node.parent >= 0)
+            node.globalMatrix = nodes[node.parent].globalMatrix * node.localMatrix;
+        else
+            node.globalMatrix = node.localMatrix;
+        for (int childIndex : node.children)
+            updateNodeGlobalRecursive(nodes[childIndex], nodes);
+    }
+
+    void createGlMesh( const tinygltf::Model& model, const tinygltf::Primitive& primitive) {
         std::vector<glm::vec3> positions;
         std::vector<glm::vec3> normals;
         std::vector<glm::vec2> texcoords;
@@ -103,6 +199,7 @@ private:
         std::vector<Vertex> vertices = ZipVertices(positions, normals, texcoords, tangents, joints, weights);
         AABB localAABB = computeLocalAABB(vertices);
         Mesh mesh(vertices, indices);
+        mesh.localAABB = localAABB;
         
         if (primitive.material >= 0) {
             mesh.materialIndex = primitive.material;
@@ -110,16 +207,7 @@ private:
         else {
             mesh.materialIndex = -1;
         }
-        int meshIndex = static_cast<int>(glMeshes.size());
         glMeshes.push_back(std::move(mesh));
-
-        Node node{};
-        node.glMeshIndex = meshIndex;
-        node.localModelMat = totalTransform;
-        node.localAABB = localAABB;
-
-        orientationNodes.push_back(node);   
-
     }
 
 

@@ -2,6 +2,7 @@
 #define MESH_H
 
 #include "Material.h"
+#include "HitBox.h"
 
 
 class Mesh {
@@ -13,7 +14,7 @@ public:
     std::vector<Vertex> vertices;
     Material material;
     int materialIndex;
-
+    AABB localAABB;
 
     Mesh();
     Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices);

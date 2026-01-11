@@ -226,32 +226,6 @@ inline void ReadAccessor(const tinygltf::Model& model,
 }
 
 
-inline glm::mat4 getNodeTransform(const tinygltf::Node& node)
-{
-    if (node.matrix.size() == 16) {
-        return glm::make_mat4(node.matrix.data());
-    }
-
-    glm::vec3 T(0.0f);
-    glm::quat R(1.0f, 0.0f, 0.0f, 0.0f);
-    glm::vec3 S(1.0f);
-
-    if (node.translation.size() == 3)
-        T = stdVec3ToGlm(node.translation);
-
-    if (node.rotation.size() == 4)
-        R = glm::quat(
-            node.rotation[3],
-            node.rotation[0],
-            node.rotation[1],
-            node.rotation[2]
-        );
-
-    if (node.scale.size() == 3)
-        S = stdVec3ToGlm(node.scale);
-
-    return glm::translate(glm::mat4(1.0f), T) * glm::mat4_cast(R)  * glm::scale(glm::mat4(1.0f), S);
-}
 
 inline void DebugPrintVertex(const Vertex& v, size_t index = 0)
 {
