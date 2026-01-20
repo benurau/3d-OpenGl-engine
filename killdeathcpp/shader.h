@@ -153,6 +153,12 @@ public:
             uniformValues[name] = glm::to_string(mat);
         }
     }
+    void setMat4Array(const std::string& name, const std::vector<glm::mat4>& value)
+    {
+        GLint loc = getUniformLocation(name);
+        if (loc != -1)
+        glUniformMatrix4fv(loc, static_cast<GLsizei>(value.size()),  GL_FALSE, glm::value_ptr(value[0]));
+    }
 
     void setObjectOrientation(ObjectOrientation& orientation) {
         use();

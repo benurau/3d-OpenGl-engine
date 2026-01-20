@@ -43,10 +43,11 @@ void Renderer::drawModel(tinyModel& model, ObjectOrientation& rootOrientation) {
         if (node.glMeshIndex < 0) continue;
 
         ObjectOrientation finalOrientation = rootOrientation;
-        finalOrientation.modelMatrix = glm::scale(rootOrientation.modelMatrix, glm::vec3(0.01f)) * node.globalMatrix;
 
+        finalOrientation.modelMatrix = rootOrientation.modelMatrix * node.globalMatrix;
+       
         Mesh& mesh = model.glMeshes[node.glMeshIndex];
-
+        
         uint32_t matIndex = mesh.materialIndex + model.materialOffset;
         if (matIndex >= materials.size()) {
             std::cerr << "[Renderer] Invalid material index\n";
@@ -54,6 +55,16 @@ void Renderer::drawModel(tinyModel& model, ObjectOrientation& rootOrientation) {
         }
         Material& mat = materials[matIndex];
 
+        mat.shader->use();
+        if (node.skinIndex >= 0) {
+            Skin& skin = model.skins[node.skinIndex];
+            mat.shader->setMat4Array( "jointMatrices", skin.jointMatrices);
+            mat.shader->setBool("skinned", 1);
+        }
+        else {
+            mat.shader->setBool("skinned", 0);
+        }
+        //model.updateSkinsDiagnostics();
         draw(mesh, finalOrientation, mat);
     }
 }
@@ -72,6 +83,7 @@ void Renderer::draw(Mesh& mesh, ObjectOrientation& orientation, Material& materi
     material.apply();
     checkGLError("material.apply");
     //std::cout << "[Draw] Binding VAO ID: " << mesh.vao << std::endl;
+    //orientation.debugPrint();
     //orientation.debugPrint();
     glBindVertexArray(mesh.vao);
     checkGLError("glBindVertexArray");

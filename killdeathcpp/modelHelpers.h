@@ -123,7 +123,15 @@ inline Texture TextureFromGLTFImage(const tinygltf::Image& img, bool srgb)
         return Texture{ 0 };
     }
 
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, img.width, img.height, 0, format, GL_UNSIGNED_BYTE, img.image.data());
+    std::vector<unsigned char> flipped(img.image.size());
+    int rowSize = img.width * img.component;
+    for (int y = 0; y < img.height; ++y) {
+        memcpy(&flipped[y * rowSize],
+            &img.image[(img.height - 1 - y) * rowSize],
+            rowSize);
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, img.width, img.height, 0, format, GL_UNSIGNED_BYTE, flipped.data());
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -207,6 +215,9 @@ inline void ReadAccessor(const tinygltf::Model& model,
 
             if constexpr (std::is_same_v<T, glm::vec4> || std::is_same_v<T, glm::vec3> || std::is_same_v<T, glm::vec2>) {
                 (&value[0])[c] = f;
+            }
+            else if constexpr (std::is_same_v<T, glm::mat4>) {
+                value[c / 4][c % 4] = f;
             }
             else if constexpr (std::is_same_v<T, float>) {
                 if (c == 0) value = f;

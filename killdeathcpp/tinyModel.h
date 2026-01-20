@@ -1,5 +1,13 @@
-
 #pragma once
+
+#define ANIM_DEBUG 0
+#if ANIM_DEBUG
+#define ANIM_LOG(x) std::cout << x << std::endl
+#else
+#define ANIM_LOG(x)
+#endif
+
+
 #include "modelHelpers.h"
 #include "HitBox.h"
 
@@ -22,26 +30,24 @@ struct Node {
 };
 
 struct Skin {
-    std::vector<int> joints;       
-    std::vector<glm::mat4> inverseBind;  
-    std::vector<glm::mat4> jointMatrices; 
+    int skeletonRoot = -1;   
+    glm::mat4 invRoot;
+    std::vector<int> joints;          
+    std::vector<glm::mat4> inverseBind;
+    std::vector<glm::mat4> jointMatrices;
 };
 
 struct AnimationSampler {
-    std::vector<float> times;     
-    std::vector<glm::vec4> values; 
+    size_t lastIndex = 0;
+    std::vector<float> inputs;  
+    std::vector<glm::vec4> outputs;     
+    std::string interpolation;          
 };
 
 struct AnimationChannel {
-    enum class Path {
-        Translation,
-        Rotation,
-        Scale
-    };
-
+    size_t nodeIndex;  
     int samplerIndex;
-    int nodeIndex;
-    Path path;
+    enum class Path { Translation, Rotation, Scale } path;
 };
 
 struct Animation {
@@ -56,6 +62,7 @@ public:
     std::vector<GLTFMaterialGPU> gpuMaterials;
     std::vector<Mesh> glMeshes;
     std::vector<Node> nodes;
+    std::vector<Skin> skins;
     int materialOffset;
 
     tinyModel(const std::string& path) {
@@ -70,20 +77,85 @@ public:
         }      
         loadMeshes();
         loadNodes();   
-        updateNodeTransforms(nodes);
+        updateNodeTransforms();
+        loadAnimations();
+        loadSkins();
     }
 
-    void updateNodeTransforms(std::vector<Node>& nodes) {
+    void updateNodeTransforms() {
         for (Node& n : nodes) {
             if (n.parent == -1)
                 updateNodeGlobalRecursive(n, nodes);
         }
     }
 
+
+    void updateAnimation(float deltaTime)
+    {
+        Animation& anim = animations[activeAnimation];
+        float prevTime = animationTime;
+        animationTime = fmod(animationTime + deltaTime, anim.duration);
+
+        for (const AnimationChannel& channel : anim.channels) {
+            Node& node = nodes[channel.nodeIndex];
+            AnimationSampler& sampler = anim.samplers[channel.samplerIndex];
+
+            if (animationTime < sampler.inputs[sampler.lastIndex])sampler.lastIndex = 0;
+            size_t i = sampler.lastIndex;
+            while (i + 1 < sampler.inputs.size() && sampler.inputs[i + 1] <= animationTime) i++;
+            if (i + 1 >= sampler.inputs.size()) i = 0;
+
+            size_t j = i + 1;
+            float t0 = sampler.inputs[i];
+            float t1 = sampler.inputs[j];
+            float alpha = (t1 > t0) ? (animationTime - t0) / (t1 - t0) : 0.0f;
+
+            if (channel.path == AnimationChannel::Path::Translation) {
+                glm::vec3 a = glm::vec3(sampler.outputs[i]);
+                glm::vec3 b = glm::vec3(sampler.outputs[j]);  
+                node.translation = glm::mix(a, b, alpha);
+            }
+            else if (channel.path == AnimationChannel::Path::Rotation) {
+                glm::vec4 va = sampler.outputs[i];
+                glm::vec4 vb = sampler.outputs[j];
+                glm::quat a(va.w, va.x, va.y, va.z);
+                glm::quat b(vb.w, vb.x, vb.y, vb.z);
+                node.rotation = glm::slerp(a, b, alpha);
+            }
+            else if (channel.path == AnimationChannel::Path::Scale) {
+                glm::vec3 a = glm::vec3(sampler.outputs[i]);
+                glm::vec3 b = glm::vec3(sampler.outputs[j]);
+                node.scale = glm::mix(a, b, alpha);
+            }
+        }
+    }
+
+
+    void updateSkins()
+    {
+        if (skins.empty()) {
+            return;
+        }
+        for (size_t s = 0; s < skins.size(); ++s) {
+            Skin& skin = skins[s];
+            skin.jointMatrices.resize(skin.joints.size());
+
+            for (size_t i = 0; i < skin.joints.size(); ++i) {
+                int jointNodeIndex = skin.joints[i];
+                skin.jointMatrices[i] = nodes[jointNodeIndex].globalMatrix * skin.inverseBind[i];
+            }
+        }
+    }
+
+
 private:
     tinygltf::TinyGLTF loader;
     std::string err, warn;
     std::vector<int> meshNodeToGLMesh;
+    std::vector<Animation> animations;
+    int activeAnimation = 0;
+    float animationTime = 0.0f;
+
 
     void load_model(const std::string& path) {
         bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, path);
@@ -102,36 +174,33 @@ private:
 
             dst.children = src.children;
             dst.parent = -1;
-            if (src.mesh >= 0) {
-                dst.glMeshIndex = meshNodeToGLMesh[src.mesh];
-                //dst.localAABB = combinePrimitivesAABB(src.mesh);
-            }
-            else {
-                dst.glMeshIndex = -1;
-            }
-            if (!src.matrix.empty()) {
-                glm::mat4 m = glm::make_mat4(src.matrix.data());
-                dst.translation = glm::vec3(m[3][0], m[3][1], m[3][2]);
-                dst.scale.x = glm::length(glm::vec3(m[0][0], m[0][1], m[0][2]));
-                dst.scale.y = glm::length(glm::vec3(m[1][0], m[1][1], m[1][2]));
-                dst.scale.z = glm::length(glm::vec3(m[2][0], m[2][1], m[2][2]));
-                glm::mat3 rotMat;
-                rotMat[0] = glm::vec3(m[0][0], m[0][1], m[0][2]) / dst.scale.x;
-                rotMat[1] = glm::vec3(m[1][0], m[1][1], m[1][2]) / dst.scale.y;
-                rotMat[2] = glm::vec3(m[2][0], m[2][1], m[2][2]) / dst.scale.z;
-                dst.rotation = glm::quat_cast(rotMat);
-            }
-            else {
-                dst.translation = src.translation.empty() ? glm::vec3(0.0f) : stdVec3ToGlm(src.translation);
-                dst.rotation = src.rotation.empty() ? glm::quat(1, 0, 0, 0)
-                    : glm::quat(src.rotation[3], src.rotation[0], src.rotation[1], src.rotation[2]);
-                dst.scale = src.scale.empty() ? glm::vec3(1.0f) : stdVec3ToGlm(src.scale);
-            }
             dst.skinIndex = src.skin;
+
+            if (src.mesh >= 0)
+                dst.glMeshIndex = meshNodeToGLMesh[src.mesh];
+            else
+                dst.glMeshIndex = -1;
+
+            if (!src.matrix.empty()) {
+                float unitScale = 0.01f;
+                glm::mat4 M = glm::make_mat4(src.matrix.data());
+                glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(unitScale));
+                dst.localMatrix = S * M;
+                dst.translation = glm::vec3(dst.localMatrix[3]);
+                dst.rotation = glm::quat_cast(glm::mat3(dst.localMatrix));               
+                dst.scale = glm::vec3(1.0f);
+                
+            }
+            else {
+                dst.translation = src.translation.empty() ? glm::vec3(0.0f)  : stdVec3ToGlm(src.translation);
+                dst.rotation = src.rotation.empty() ? glm::quat(1, 0, 0, 0) : glm::quat(src.rotation[3], src.rotation[0], src.rotation[1], src.rotation[2]);
+                dst.scale = src.scale.empty() ? glm::vec3(1.0f) : stdVec3ToGlm(src.scale);                
+            }
+            
         }
         for (size_t i = 0; i < nodes.size(); ++i)
             for (int c : nodes[i].children)
-                nodes[c].parent = static_cast<int>(i);
+                nodes[c].parent = int(i);
     }
 
     void loadMeshes()
@@ -148,10 +217,27 @@ private:
         }
     }
 
+    void loadSkins()
+    {
+        for (const tinygltf::Skin& src : model.skins) {
+            Skin skin;
+            skin.skeletonRoot = src.skeleton;
+            skin.joints = src.joints;
+            if (src.inverseBindMatrices >= 0) {
+                ReadAccessor(model,model.accessors[src.inverseBindMatrices],skin.inverseBind);
+            }
+            else {
+                skin.inverseBind.resize(skin.joints.size(), glm::mat4(1.0f));
+            }          
+            skins.push_back(skin);
+        }
+    }
+
     void updateNodeGlobalRecursive(Node& node, std::vector<Node>& nodes) {
         node.localMatrix = glm::translate(glm::mat4(1.0f), node.translation) * glm::mat4_cast(node.rotation) * glm::scale(glm::mat4(1.0f), node.scale);
-        if (node.parent >= 0)
+        if (node.parent >= 0) {
             node.globalMatrix = nodes[node.parent].globalMatrix * node.localMatrix;
+        }
         else
             node.globalMatrix = node.localMatrix;
         for (int childIndex : node.children)
@@ -210,6 +296,35 @@ private:
         glMeshes.push_back(std::move(mesh));
     }
 
+    void loadAnimations() {
+        for (const tinygltf::Animation& srcAnim : model.animations) {
+            Animation anim;
+            for (const auto& srcSampler : srcAnim.samplers) {
+                AnimationSampler sampler;
+                ReadAccessor(model, model.accessors[srcSampler.input], sampler.inputs);
+                ReadAccessor(model, model.accessors[srcSampler.output], sampler.outputs);
+
+                sampler.interpolation = srcSampler.interpolation;
+                anim.samplers.push_back(sampler);
+                anim.duration = std::max(anim.duration, sampler.inputs.back());
+            }
+            for (const auto& srcChannel : srcAnim.channels) {
+                AnimationChannel channel;
+                channel.nodeIndex = srcChannel.target_node;
+                channel.samplerIndex = srcChannel.sampler;
+
+                if (srcChannel.target_path == "translation")
+                    channel.path = AnimationChannel::Path::Translation;
+                else if (srcChannel.target_path == "rotation")
+                    channel.path = AnimationChannel::Path::Rotation;
+                else if (srcChannel.target_path == "scale")
+                    channel.path = AnimationChannel::Path::Scale;
+
+                anim.channels.push_back(channel);
+            }
+            animations.push_back(anim);
+        }
+    }
 
     GLTFMaterialGPU ParseGLTFMaterial(const tinygltf::Model& model, const tinygltf::Material& mat){
         GLTFMaterialGPU out;

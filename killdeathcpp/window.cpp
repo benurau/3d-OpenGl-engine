@@ -18,7 +18,7 @@ struct MeshObject {
 
 
 struct ModelObject {
-    tinyModel model;
+    tinyModel& model;
     ObjectOrientation orientation;
 };
 
@@ -91,6 +91,7 @@ int main(int argc, char* argv[]){
     shaders["textureLighting"] = Shader("..\\shaders\\lightingMap.vs", "..\\shaders\\lightingMap.fs");
     shaders["model_Load"] = Shader("..\\shaders\\model_load.vs", "..\\shaders\\model_load.fs");
     shaders["gltfModel"] = Shader("..\\shaders\\gltfModel.vs", "..\\shaders\\gltfModel.fs");
+    shaders["gltfModelSkinned"] = Shader("..\\shaders\\modelAnimation.vs", "..\\shaders\\modelAnimation.fs");
 
     ObjectOrientation defaultObj = ObjectOrientation();
 
@@ -118,7 +119,7 @@ int main(int argc, char* argv[]){
     tinyModel minaglft = tinyModel("..\\models\\mina\\scene.gltf");
     minaglft.materialOffset = renderer.materials.size();
     for (GLTFMaterialGPU mat : minaglft.gpuMaterials) {
-        renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
+        renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModelSkinned"]));
     }
 
 
@@ -154,7 +155,8 @@ int main(int argc, char* argv[]){
     ModelObject pack = { packgltf, defaultObj };
     ModelObject mina = { minaglft, defaultObj };
     pack.orientation.movePos(glm::vec3(3.0f, -3.5f, 2.0f));
-    mina.orientation.movePos(glm::vec3(3.0f, -3.5f, 2.0f));
+    mina.orientation.movePos(glm::vec3(3.0f, -4.9f, 2.0f));
+    mina.orientation.rotate(glm::vec3(90.0f, 3.5f, 2.0f));
 
     Light pointLight;
     pointLight.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
@@ -206,7 +208,7 @@ int main(int argc, char* argv[]){
     silver.vec3Uniforms["material.diffuse"]  = glm::vec3(1.0f, 0.5f, 0.31f);
     silver.vec3Uniforms["material.specular"] = glm::vec3(0.5f, 0.5f, 0.5f);
     silver.floatUniforms["material.shininess"] = 32.0f;
-
+    int first = 0;
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -222,8 +224,18 @@ int main(int argc, char* argv[]){
         backpack.orientation.changeView(camera.GetViewMatrix());
         backpack.Draw(shaders["model_Load"]);
 
-        pack.orientation.changeView(camera.GetViewMatrix());
-        renderer.drawModel(pack.model, pack.orientation);
+        /*pack.orientation.changeView(camera.GetViewMatrix());
+        renderer.drawModel(pack.model, pack.orientation);*/
+
+        if (!first){
+            mina.model.updateAnimation(deltaTime);
+            mina.model.updateNodeTransforms();
+            mina.model.updateSkins();
+        }
+        mina.orientation.changeView(camera.GetViewMatrix());
+        first = 0;
+
+        renderer.drawModel(mina.model, mina.orientation);
 
         testobject.orientation.changeView(camera.GetViewMatrix());
         renderer.draw(testobject.mesh, testobject.orientation, testmat);
