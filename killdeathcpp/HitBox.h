@@ -9,6 +9,12 @@
 
 
 
+enum class HitboxShape {
+    Sphere,
+    Capsule,
+    Box
+};
+
 struct AABB {
     glm::vec3 min;
     glm::vec3 max;
@@ -18,11 +24,33 @@ struct AABB {
         max = glm::vec3(std::numeric_limits<float>::lowest());
     }
 
+    void reset()
+    {
+        min = glm::vec3(FLT_MAX);
+        max = glm::vec3(-FLT_MAX);
+    }
+
     void expand(const glm::vec3& p) {
         min = glm::min(min, p);
         max = glm::max(max, p);
     }
+
+    void expand(const AABB& aabb)
+    {
+        expand(aabb.min);
+        expand(aabb.max);
+    }
 };
+
+
+struct ModelHitbox {
+    HitboxShape shape;
+    int node;
+    glm::mat4 localOffset;
+    float radius;
+    float halfHeight;
+};
+
 
 inline AABB computeLocalAABB(const std::vector<Vertex>& vertices)
 {
@@ -39,6 +67,8 @@ inline AABB computeLocalAABB(const std::vector<Vertex>& vertices)
 
 inline AABB computeWorldAABB(const AABB& local, const glm::mat4& model)
 {
+    AABB world;
+    world.reset();
     glm::vec3 corners[8] = {
         {local.min.x, local.min.y, local.min.z},
         {local.max.x, local.min.y, local.min.z},
@@ -50,23 +80,17 @@ inline AABB computeWorldAABB(const AABB& local, const glm::mat4& model)
         {local.max.x, local.max.y, local.max.z},
     };
 
-    AABB world;
-    world.min = glm::vec3(std::numeric_limits<float>::max());
-    world.max = glm::vec3(std::numeric_limits<float>::lowest());
-
-    for (const auto& c : corners) {
-        glm::vec3 wc = glm::vec3(model * glm::vec4(c, 1.0f));
-        world.min = glm::min(world.min, wc);
-        world.max = glm::max(world.max, wc);
+    for (int i = 0; i < 8; ++i) {
+        glm::vec3 p = glm::vec3(model * glm::vec4(corners[i], 1.0f));
+        world.expand(p);
     }
-
     return world;
 }
 
-class HitBox {
+
+class VerticeHitBox {
 public:
-    glm::vec3 min;
-    glm::vec3 max;
+    AABB aabb;
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
     glm::mat3 NormalMatrix;
@@ -76,8 +100,8 @@ public:
     int cTrianglesCount;
     bool close;
 
-    HitBox() {};
-    HitBox(std::vector<Vertex> vertices, std::vector<GLuint> indices, glm::mat4 modelMat) {
+    VerticeHitBox() {};
+    VerticeHitBox(std::vector<Vertex> vertices, std::vector<GLuint> indices, glm::mat4 modelMat) {
         this->vertices = vertices;
         this->indices = indices;      
         this->cTrianglesCount = indices.size()/3;
@@ -90,26 +114,6 @@ public:
         delete[] cTriangles;
         SetDefaults();
     }
-
-    bool checkPointInTriangle(glm::vec3 point, const Triangle& triangle)
-    {
-        glm::vec3 a = triangle.a - point;
-        glm::vec3 b = triangle.b - point;
-        glm::vec3 c = triangle.c - point;
-
-        glm::vec3 normPBC = glm::cross(b, c);
-        glm::vec3 normPCA = glm::cross(c, a);
-        glm::vec3 normPAB = glm::cross(a, b);
-
-        if (glm::dot(normPBC, normPCA) < 0.0f) {
-            return false;
-        }
-        else if (glm::dot(normPBC, normPAB) < 0.0f) {
-            return false;
-        }
-        return true;
-    }
-
 
     void PrepareTriangles()
     {
@@ -140,26 +144,26 @@ public:
             Triangle++;
         }
         if (cTrianglesCount == 0) return;
-        min = max = cTriangles[0].Vertex[0];
+        aabb.min = aabb.max = cTriangles[0].Vertex[0];
         Triangle = cTriangles;
 
         for (int t = 0; t < cTrianglesCount; t++)
         {
             for (int v = 0; v < 3; v++)
             {
-                if (Triangle->Vertex[v].x < min.x) min.x = Triangle->Vertex[v].x;
-                if (Triangle->Vertex[v].x > max.x) max.x = Triangle->Vertex[v].x;
-                if (Triangle->Vertex[v].y < min.y) min.y = Triangle->Vertex[v].y;
-                if (Triangle->Vertex[v].y > max.y) max.y = Triangle->Vertex[v].y;
-                if (Triangle->Vertex[v].z < min.z) min.z = Triangle->Vertex[v].z;
-                if (Triangle->Vertex[v].z > max.z) max.z = Triangle->Vertex[v].z;
+                if (Triangle->Vertex[v].x < aabb.min.x) aabb.min.x = Triangle->Vertex[v].x;
+                if (Triangle->Vertex[v].x > aabb.max.x) aabb.max.x = Triangle->Vertex[v].x;
+                if (Triangle->Vertex[v].y < aabb.min.y) aabb.min.y = Triangle->Vertex[v].y;
+                if (Triangle->Vertex[v].y > aabb.max.y) aabb.max.y = Triangle->Vertex[v].y;
+                if (Triangle->Vertex[v].z < aabb.min.z) aabb.min.z = Triangle->Vertex[v].z;
+                if (Triangle->Vertex[v].z > aabb.max.z) aabb.max.z = Triangle->Vertex[v].z;
             }
             //std::cout << min.x<< "  " << min.y<< "  "<< max.x << "   " <<max.y<<"\n";
             Triangle++;
         }
         assert(cTrianglesCount * 3 <= indices.size());
-        min -= RADIUS;
-        max += RADIUS;
+        aabb.min -= RADIUS;
+        aabb.max += RADIUS;
     }
 
 

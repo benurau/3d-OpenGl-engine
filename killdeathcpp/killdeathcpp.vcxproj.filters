@@ -43,9 +43,6 @@
     <Filter Include="Header Files\RendererhFiles">
       <UniqueIdentifier>{2dcc151e-29b7-40e2-ba0a-527c2c009ed4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\animation">
-      <UniqueIdentifier>{dd5f89f4-aced-4f05-8df8-f36fe78c987a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="shaders">
       <UniqueIdentifier>{27c87860-19d2-485b-b543-231951e64314}</UniqueIdentifier>
     </Filter>
@@ -101,9 +98,6 @@
     <ClInclude Include="ObjectParams.h">
       <Filter>Header Files\ObjecthFiles</Filter>
     </ClInclude>
-    <ClInclude Include="Model.h">
-      <Filter>Header Files\ObjecthFiles</Filter>
-    </ClInclude>
     <ClInclude Include="ModelMesh.h">
       <Filter>Header Files\ObjecthFiles</Filter>
     </ClInclude>
@@ -137,16 +131,10 @@
     <ClInclude Include="Geometry3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Animation.h">
-      <Filter>Header Files\animation</Filter>
-    </ClInclude>
-    <ClInclude Include="Animator.h">
-      <Filter>Header Files\animation</Filter>
-    </ClInclude>
-    <ClInclude Include="Bone.h">
-      <Filter>Header Files\animation</Filter>
-    </ClInclude>
     <ClInclude Include="tinyModel.h">
+      <Filter>Header Files\ObjecthFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="objects.h">
       <Filter>Header Files\ObjecthFiles</Filter>
     </ClInclude>
   </ItemGroup>
@@ -209,5 +197,10 @@
     <None Include="..\shaders\gltfModel.vs">
       <Filter>shaders</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="temp_code_storage.txt">
+      <Filter>Header Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

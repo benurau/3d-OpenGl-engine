@@ -4,23 +4,10 @@
 #include "Camera.h"
 #include "ObjectParams.h"
 #include "Colissions.h"
+#include "objects.h"
 #include "Lights.h"
-#include "Model.h"
 #include "tinyModel.h"
 #include "Mesh.h"
-
-
-struct MeshObject {
-    Mesh mesh;
-    ObjectOrientation orientation;
-    HitBox hitbox;
-};
-
-
-struct ModelObject {
-    tinyModel& model;
-    ObjectOrientation orientation;
-};
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -102,19 +89,19 @@ int main(int argc, char* argv[]){
     Material TextureLight = Material(&shaders["textureLighting"]);
     Material basic = Material(&shaders["quad3d"]);
 
-    Material testmat = Material(&shaders["gltfModel"]);
-
-    testmat.textureUniforms["uBaseColorTex"] = monsterT;
-    testmat.vec4Uniforms["uBaseColorFactor"] = glm::vec4(1.0f);
-
-
     TextureLight.textureUniforms["material.texture_diffuse1"] = scarywall;
+    shaders["textureLighting"].use();
+    shaders["textureLighting"].setVec3("light.position", glm::vec3(1.0f, 0.5f, 1.0f));
+    shaders["textureLighting"].setVec3("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
+    shaders["textureLighting"].setVec3("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+    shaders["textureLighting"].setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+    shaders["textureLighting"].setVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+    shaders["textureLighting"].setFloat("material.shininess", 32.0f);
     silver.textureUniforms["material.texture_diffuse1"] = scarywall;
-
-    Model glock = Model("..\\models\\glock\\scene.gltf");
-    Model backpack = Model("..\\models\\backpack\\backpack.gltf");
-    Model chair = Model("..\\models\\chair\\scene.gltf");
-
+    silver.vec3Uniforms["material.ambient"] = glm::vec3(1.0f, 0.5f, 0.31f);
+    silver.vec3Uniforms["material.diffuse"] = glm::vec3(1.0f, 0.5f, 0.31f);
+    silver.vec3Uniforms["material.specular"] = glm::vec3(0.5f, 0.5f, 0.5f);
+    silver.floatUniforms["material.shininess"] = 32.0f;
 
     tinyModel minaglft = tinyModel("..\\models\\mina\\scene.gltf");
     minaglft.materialOffset = renderer.materials.size();
@@ -122,39 +109,25 @@ int main(int argc, char* argv[]){
         renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModelSkinned"]));
     }
 
-
     tinyModel packgltf = tinyModel("..\\models\\backpack\\scene.gltf");
     packgltf.materialOffset = renderer.materials.size();
     for (GLTFMaterialGPU mat : packgltf.gpuMaterials) {
         renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
     }
 
-    /*tinyModel pack = tinyModel("..\\models\\backpack\\backpack.gltf");
-    pack.materialOffset = renderer.materials.size();
-    for (GLTFMaterialGPU mat : pack.gpuMaterials) {
-        renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
-    }*/
-
     DirLight basicLight;
-
-
     Mesh cube(cubeVertices, cubeIndices);
 
-    MeshObject floor{cube, defaultObj, HitBox(cube.vertices, cube.indices, defaultObj.modelMatrix)};
-    MeshObject cubeObject{ cube, defaultObj, HitBox(cube.vertices, cube.indices, defaultObj.modelMatrix) };
-    MeshObject lightingCube{ cube, defaultObj, HitBox(cube.vertices, cube.indices, defaultObj.modelMatrix) };
-    MeshObject textureLightingObject{ cube, defaultObj, HitBox(cube.vertices, cube.indices, defaultObj.modelMatrix) };
-    MeshObject basicLightingObject{ cube, defaultObj, HitBox(cube.vertices, cube.indices, defaultObj.modelMatrix) };
-    MeshObject materialLightingObject{ cube, defaultObj, HitBox(cube.vertices, cube.indices, defaultObj.modelMatrix) };
+    MeshObject floor{cube, defaultObj, VerticeHitBox(cube.vertices, cube.indices, defaultObj.modelMatrix)};
+    
 
-    MeshObject testobject{ cube, defaultObj, HitBox(cube.vertices, cube.indices, defaultObj.modelMatrix) };
-    testobject.orientation.movePos(glm::vec3(1.0f, -3.0f, 2.0f));
-    testobject.hitbox.updateModelMatrix(basicLightingObject.orientation.modelMatrix);
-
-    /*ModelObject minaObject{mina, defaultObj, };*/
     ModelObject pack = { packgltf, defaultObj };
     ModelObject mina = { minaglft, defaultObj };
-    pack.orientation.movePos(glm::vec3(3.0f, -3.5f, 2.0f));
+    pack.orientation.movePos(glm::vec3(0.0f, -3.0f, 2.0f));
+
+    pack.colission.updateModelAABBnodes(pack.model);
+    pack.colission.updateWorldAABB(pack.orientation.modelMatrix);
+
     mina.orientation.movePos(glm::vec3(3.0f, -4.9f, 2.0f));
     mina.orientation.rotate(glm::vec3(90.0f, 3.5f, 2.0f));
 
@@ -164,51 +137,13 @@ int main(int argc, char* argv[]){
     pointLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 
     std::vector<MeshObject*> objects;
-    objects.emplace_back(&cubeObject);
     objects.emplace_back(&floor);
-    objects.emplace_back(&lightingCube);
-    objects.emplace_back(&textureLightingObject);
 
     floor.orientation.changeSize(glm::vec3(100.0f, 0.0f, 100.0f));
     floor.orientation.movePos(glm::vec3(-1.0f, -5.0f, -1.0f));
     floor.hitbox.updateModelMatrix(floor.orientation.modelMatrix);
-    cubeObject.orientation.movePos(glm::vec3(1.0f, -0.5f, 1.0f));
-    cubeObject.hitbox.updateModelMatrix(cubeObject.orientation.modelMatrix);
-    lightingCube.orientation.movePos(glm::vec3(2.0f, -0.5f, 1.0f));
-    lightingCube.hitbox.updateModelMatrix(lightingCube.orientation.modelMatrix);
-    basicLightingObject.orientation.movePos(glm::vec3(1.0f, -0.5f, 6.0f));
-    basicLightingObject.hitbox.updateModelMatrix(basicLightingObject.orientation.modelMatrix);
-    materialLightingObject.orientation.movePos(glm::vec3(1.0f, -0.5f, 3.0f));
-    materialLightingObject.hitbox.updateModelMatrix(materialLightingObject.orientation.modelMatrix);
-    textureLightingObject.orientation.movePos(glm::vec3(1.0f, -0.5f, 4.0f));
-    textureLightingObject.hitbox.updateModelMatrix(textureLightingObject.orientation.modelMatrix);
 
-    backpack.movePos(glm::vec3(-3.0f, -0.5f, -0.5f));
-    chair.changeSize(glm::vec3(2.0f, 2.0f, 2.0f));
-    chair.movePos(glm::vec3(3.0f, -0.5f, -0.5f));
 
-    shaders["textureLighting"].use();
-    shaders["textureLighting"].setVec3("light.position", glm::vec3(1.0f, 0.5f, 1.0f));
-    shaders["textureLighting"].setVec3("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
-    shaders["textureLighting"].setVec3("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
-    shaders["textureLighting"].setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
-    shaders["textureLighting"].setVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
-    shaders["textureLighting"].setFloat("material.shininess", 32.0f);
-
-    glm::vec3 lightColor = glm::vec3(0.6f, 1.2f, 2.2f);
-    glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-    glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
-
-    basicLight.direction = lightingCube.orientation.position;
-    basicLight.ambient = ambientColor;
-    basicLight.diffuse = diffuseColor;
-    basicLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
-    
-    silver.vec3Uniforms["material.ambient"]  = glm::vec3(1.0f, 0.5f, 0.31f);
-    silver.vec3Uniforms["material.diffuse"]  = glm::vec3(1.0f, 0.5f, 0.31f);
-    silver.vec3Uniforms["material.specular"] = glm::vec3(0.5f, 0.5f, 0.5f);
-    silver.floatUniforms["material.shininess"] = 32.0f;
-    int first = 0;
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -221,35 +156,31 @@ int main(int argc, char* argv[]){
         bool collided = false;
         glm::vec3 originalMovement = camera.movement;    
 
-        backpack.orientation.changeView(camera.GetViewMatrix());
-        backpack.Draw(shaders["model_Load"]);
-
-        /*pack.orientation.changeView(camera.GetViewMatrix());
-        renderer.drawModel(pack.model, pack.orientation);*/
-
-        if (!first){
-            mina.model.updateAnimation(deltaTime);
-            mina.model.updateNodeTransforms();
-            mina.model.updateSkins();
+        pack.orientation.changeView(camera.GetViewMatrix());
+        renderer.drawModel(pack.model, pack.orientation);
+        //printf("modelspace pack min\n");
+        //printVec3(pack.colission.worldAABB.min);
+        //printf("modelspace pack max\n");
+        //printVec3(pack.colission.worldAABB.max);
+        if (AABBPointColission(pack.colission.worldAABB, camera.position + camera.movement)) {
+            //printf("gfsdgfdgfds");
         }
-        mina.orientation.changeView(camera.GetViewMatrix());
-        first = 0;
 
+        mina.model.updateAnimation(deltaTime);
+        mina.model.updateNodeTransforms();
+        mina.model.updateSkins();
+        mina.colission.updateModelAABBskins(mina.model);
+        mina.colission.updateWorldAABB(mina.orientation.modelMatrix);
+        mina.orientation.changeView(camera.GetViewMatrix());
         renderer.drawModel(mina.model, mina.orientation);
 
-        testobject.orientation.changeView(camera.GetViewMatrix());
-        renderer.draw(testobject.mesh, testobject.orientation, testmat);
-
-        materialLightingObject.orientation.changeView(camera.GetViewMatrix());
-        basicLight.SetLightUniforms(shaders["materialLighting"], "light");
-        renderer.draw(materialLightingObject.mesh, materialLightingObject.orientation, TextureLight);
-
-        if (basic_AABB_Colission(backpack.coarse_AABB, camera.position, camera.movement)) {
-            collided = CheckModelCollision(backpack, camera);
-            grounded = checkGroundedOnMeshes(backpack, camera);
+        if (AABBPointColission(mina.colission.worldAABB, camera.position+camera.movement)) {
+            printf("gfsdgfdgfds");
         }
+
+
         for (MeshObject* object : objects) {
-            grounded |= camera.isGrounded(object->hitbox);
+            grounded |= camera.isGrounded(object->hitbox.aabb);
             object->orientation.changeView(camera.GetViewMatrix());
             renderer.draw(object->mesh, object->orientation, silver);
 

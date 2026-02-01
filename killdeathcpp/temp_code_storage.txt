@@ -1,0 +1,58 @@
+void updateSkins()
+    {
+        if (skins.empty())
+            return;
+        modelAABB.reset();  
+        for (Skin& skin : skins) {
+            skin.jointMatrices.resize(skin.joints.size());
+            for (size_t i = 0; i < skin.joints.size(); ++i) {
+                int jointNodeIndex = skin.joints[i];
+                skin.jointMatrices[i] = nodes[jointNodeIndex].globalMatrix * skin.inverseBind[i];             
+                glm::vec3 jointPos = glm::vec3(nodes[jointNodeIndex].globalMatrix[3]);
+                modelAABB.expand(jointPos);
+            }
+        }
+
+        float padding = 0.15f;
+        modelAABB.min -= glm::vec3(padding);
+        modelAABB.max += glm::vec3(padding);
+    }
+
+
+    for nodes
+    if (node.glMeshIndex >= 0 && model.skins.size() == 0) {
+            const AABB& local = glMeshes[node.glMeshIndex].localAABB;
+            node.worldAABB = computeWorldAABB(local, node.globalMatrix);       
+        }
+
+
+
+
+
+void Object::updateWorldHitboxes()
+{
+    auto& ws = collision.worldShapes;
+
+    // clear old frame data
+    for (auto& vec : ws)
+        vec.clear();
+
+    for (int i = 0; i < model->hitboxes.size(); ++i) {
+        const ModelHitbox& hb = model->hitboxes[i];
+
+        const Node& node = model->nodes[hb.node];
+        glm::mat4 M = node.globalMatrix * hb.localOffset;
+
+        switch (hb.shape) {
+        case HitboxShape::Capsule:
+            ws[(int)HitboxShape::Capsule].push_back({
+                computeCapsuleWorld(hb, M),
+                i
+            });
+            break;
+        }
+    }
+}
+
+
+std::array<std::vector<WorldShapeEntry>, ShapeCount> worldShapes;

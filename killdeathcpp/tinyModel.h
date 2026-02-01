@@ -7,9 +7,9 @@
 #define ANIM_LOG(x)
 #endif
 
-
 #include "modelHelpers.h"
 #include "HitBox.h"
+
 
 struct Node {
     int parent = -1;
@@ -25,7 +25,6 @@ struct Node {
     int glMeshIndex = -1; 
     int skinIndex = -1;  
 
-    AABB localAABB;
     AABB worldAABB;
 };
 
@@ -63,6 +62,7 @@ public:
     std::vector<Mesh> glMeshes;
     std::vector<Node> nodes;
     std::vector<Skin> skins;
+    std::vector<ModelHitbox> hitboxes;
     int materialOffset;
 
     tinyModel(const std::string& path) {
@@ -80,6 +80,7 @@ public:
         updateNodeTransforms();
         loadAnimations();
         loadSkins();
+        createModelHitBoxes();
     }
 
     void updateNodeTransforms() {
@@ -133,20 +134,16 @@ public:
 
     void updateSkins()
     {
-        if (skins.empty()) {
+        if (skins.empty())
             return;
-        }
-        for (size_t s = 0; s < skins.size(); ++s) {
-            Skin& skin = skins[s];
+        for (Skin& skin : skins) {
             skin.jointMatrices.resize(skin.joints.size());
-
             for (size_t i = 0; i < skin.joints.size(); ++i) {
                 int jointNodeIndex = skin.joints[i];
-                skin.jointMatrices[i] = nodes[jointNodeIndex].globalMatrix * skin.inverseBind[i];
+                skin.jointMatrices[i] = nodes[jointNodeIndex].globalMatrix * skin.inverseBind[i];             
             }
         }
-    }
-
+    } 
 
 private:
     tinygltf::TinyGLTF loader;
@@ -182,6 +179,7 @@ private:
                 dst.glMeshIndex = -1;
 
             if (!src.matrix.empty()) {
+                //warning hardcoded unitscale!!!
                 float unitScale = 0.01f;
                 glm::mat4 M = glm::make_mat4(src.matrix.data());
                 glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(unitScale));
@@ -233,6 +231,26 @@ private:
         }
     }
 
+    void createModelHitBoxes()
+    {
+        for (const Skin& skin : skins) {
+            for (size_t i = 0; i + 1 < skin.joints.size(); ++i) {
+                int jointA = skin.joints[i];
+                int jointB = skin.joints[i + 1];
+                glm::vec3 pA = glm::vec3(nodes[jointA].globalMatrix[3]);
+                glm::vec3 pB = glm::vec3(nodes[jointB].globalMatrix[3]);
+                float boneLength = glm::length(pB - pA);
+                ModelHitbox hb;
+                hb.shape = HitboxShape::Capsule;
+                hb.node = jointA;
+                hb.halfHeight = boneLength * 0.5f;
+                hb.radius = boneLength * 0.15f;
+                hb.localOffset = glm::mat4(1.0f);
+                hitboxes.push_back(hb);
+            }
+        }
+    }
+
     void updateNodeGlobalRecursive(Node& node, std::vector<Node>& nodes) {
         node.localMatrix = glm::translate(glm::mat4(1.0f), node.translation) * glm::mat4_cast(node.rotation) * glm::scale(glm::mat4(1.0f), node.scale);
         if (node.parent >= 0) {
@@ -240,6 +258,12 @@ private:
         }
         else
             node.globalMatrix = node.localMatrix;
+
+        if (node.glMeshIndex >= 0 && model.skins.size() == 0) {
+            const AABB& local = glMeshes[node.glMeshIndex].localAABB;
+            node.worldAABB = computeWorldAABB(local, node.globalMatrix);
+        }
+
         for (int childIndex : node.children)
             updateNodeGlobalRecursive(nodes[childIndex], nodes);
     }
