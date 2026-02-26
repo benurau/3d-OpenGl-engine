@@ -6,7 +6,7 @@
 struct MeshObject {
     Mesh mesh;
     ObjectOrientation orientation;
-    VerticeHitBox hitbox;
+    ObjectCollision colission;
 };
 
 
@@ -14,7 +14,6 @@ struct ModelObject {
     tinyModel& model;
     ObjectOrientation orientation;
     ObjectCollision colission;
-
 };
 
 

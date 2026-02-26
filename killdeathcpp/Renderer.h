@@ -8,6 +8,7 @@
 #include "Mesh.h"
 #include "ObjectOrientation.h"
 #include "tinyModel.h"
+#include "Colissions.h"
 
 
 
@@ -35,6 +36,10 @@ public:
     void drawModel(tinyModel& model, ObjectOrientation& orientation);
     Material ConvertGLTFMaterialToMaterial(const GLTFMaterialGPU& src, Shader* shader);
     void draw(Mesh& mesh, ObjectOrientation& orientation, Material& material);
+    void drawLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& color, const glm::mat4& viewProj, Shader& shader);
+    void drawCircle(const glm::vec3& center, const glm::vec3& normal, float radius, const glm::vec3& color, const glm::mat4& viewProj, Shader& shader);
+    void drawAABB(const AABB& box, const glm::mat4& viewProj, const glm::vec3& color, Shader& shader);
+    void drawCapsule(const CapsuleWorldLoc& c, const glm::mat4& viewProj, const glm::vec3& color, Shader& shader);
 
 private:
     GLFWwindow* window;

@@ -102,10 +102,132 @@ void Renderer::draw(Mesh& mesh, ObjectOrientation& orientation, Material& materi
 }
 
 
+//debug functions
+
+void Renderer::drawLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& color, const glm::mat4& viewProj, Shader& shader)
+{
+    static GLuint vao = 0;
+    static GLuint vbo = 0;
+
+    if (vao == 0)
+    {
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+    }
+
+    glm::vec3 points[2] = { a, b };
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+    shader.use();
+    shader.setMat4("uViewProj", viewProj);
+    shader.setVec3("uColor", color);
+    glDrawArrays(GL_LINES, 0, 2);
+    glBindVertexArray(0);
+}
+
+void Renderer::drawCircle(const glm::vec3& center,const glm::vec3& normal, float radius,const glm::vec3& color, const glm::mat4& viewProj, Shader& shader){
+    const int segments = 32;
+    glm::vec3 tangent = glm::normalize(glm::cross(normal, glm::vec3(0, 1, 0)));
+    if (glm::length(tangent) < 0.01f)
+        tangent = glm::normalize(glm::cross(normal, glm::vec3(1, 0, 0)));
+    glm::vec3 bitangent = glm::normalize(glm::cross(normal, tangent));
+    for (int i = 0; i < segments; ++i)
+    {
+        float a0 = (float)i / segments * glm::two_pi<float>();
+        float a1 = (float)(i + 1) / segments * glm::two_pi<float>();
+        glm::vec3 p0 = center + (cos(a0) * tangent + sin(a0) * bitangent) * radius;
+        glm::vec3 p1 = center + (cos(a1) * tangent + sin(a1) * bitangent) * radius;
+        drawLine(p0, p1, color, viewProj, shader);
+    }
+}
+
+void Renderer::drawAABB(const AABB& box,const glm::mat4& viewProj, const glm::vec3& color, Shader& shader)
+{
+    const glm::vec3& min = box.min;
+    const glm::vec3& max = box.max;
+
+    glm::vec3 corners[8] =
+    {
+        {min.x, min.y, min.z},
+        {max.x, min.y, min.z},
+        {max.x, max.y, min.z},
+        {min.x, max.y, min.z},
+
+        {min.x, min.y, max.z},
+        {max.x, min.y, max.z},
+        {max.x, max.y, max.z},
+        {min.x, max.y, max.z}
+    };
+
+    drawLine(corners[0], corners[1], color, viewProj, shader);
+    drawLine(corners[1], corners[2], color, viewProj, shader);
+    drawLine(corners[2], corners[3], color, viewProj, shader);
+    drawLine(corners[3], corners[0], color, viewProj, shader);
+    drawLine(corners[4], corners[5], color, viewProj, shader);
+    drawLine(corners[5], corners[6], color, viewProj, shader);
+    drawLine(corners[6], corners[7], color, viewProj, shader);
+    drawLine(corners[7], corners[4], color, viewProj, shader);
+    drawLine(corners[0], corners[4], color, viewProj, shader);
+    drawLine(corners[1], corners[5], color, viewProj, shader);
+    drawLine(corners[2], corners[6], color, viewProj, shader);
+    drawLine(corners[3], corners[7], color, viewProj, shader);
+}
 
 
+void Renderer::drawCapsule(const CapsuleWorldLoc& c,const glm::mat4& viewProj,const glm::vec3& color, Shader& shader)
+{
+    const int segments = 24;
 
+    glm::vec3 axis = c.p1 - c.p0;
+    float axisLen = glm::length(axis);
 
+    if (axisLen < 0.0001f)
+        return;
+
+    axis /= axisLen;
+
+    glm::vec3 tangent = glm::cross(axis, glm::vec3(0, 1, 0));
+    if (glm::length(tangent) < 0.001f)
+        tangent = glm::cross(axis, glm::vec3(1, 0, 0));
+
+    tangent = glm::normalize(tangent);
+    glm::vec3 bitangent = glm::normalize(glm::cross(axis, tangent));
+
+    drawLine(c.p0, c.p1, glm::vec3(1, 0, 0), viewProj, shader);
+
+    for (int i = 0; i < segments; ++i)
+    {
+        float a0 = (float)i / segments * glm::two_pi<float>();
+        float a1 = (float)(i + 1) / segments * glm::two_pi<float>();
+
+        glm::vec3 offset0 = (cos(a0) * tangent + sin(a0) * bitangent) * c.radius;
+        glm::vec3 offset1 = (cos(a1) * tangent + sin(a1) * bitangent) * c.radius;
+
+        drawLine(c.p0 + offset0, c.p0 + offset1, color, viewProj, shader);
+        drawLine(c.p1 + offset0, c.p1 + offset1, color, viewProj, shader);
+    }
+    drawLine(c.p0 + tangent * c.radius, c.p1 + tangent * c.radius, color, viewProj, shader);
+    drawLine(c.p0 - tangent * c.radius, c.p1 - tangent * c.radius, color, viewProj, shader);
+    drawLine(c.p0 + bitangent * c.radius, c.p1 + bitangent * c.radius, color, viewProj, shader);
+    drawLine(c.p0 - bitangent * c.radius, c.p1 - bitangent * c.radius, color, viewProj, shader);
+    for (int i = 0; i < segments; ++i)
+    {
+        float a0 = (float)i / segments * glm::pi<float>();
+        float a1 = (float)(i + 1) / segments * glm::pi<float>();
+
+        glm::vec3 ring0 = cos(a0) * axis * c.radius;
+        glm::vec3 ring1 = cos(a1) * axis * c.radius;
+
+        glm::vec3 side0 = sin(a0) * tangent * c.radius;
+        glm::vec3 side1 = sin(a1) * tangent * c.radius;
+
+        drawLine(c.p0 + ring0 + side0, c.p0 + ring1 + side1, color, viewProj, shader);
+        drawLine(c.p1 - ring0 + side0, c.p1 - ring1 + side1, color, viewProj, shader);
+    }
+}
 
 
 

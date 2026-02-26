@@ -244,7 +244,7 @@ private:
                 hb.shape = HitboxShape::Capsule;
                 hb.node = jointA;
                 hb.halfHeight = boneLength * 0.5f;
-                hb.radius = boneLength * 0.15f;
+                hb.radius = boneLength * 0.3f;
                 hb.localOffset = glm::mat4(1.0f);
                 hitboxes.push_back(hb);
             }

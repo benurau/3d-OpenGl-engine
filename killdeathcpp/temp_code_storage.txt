@@ -1,58 +1,180 @@
-void updateSkins()
+#this is a advanced verticehitbox system for later potential checking 
+class VerticeHitBox {
+public:
+    AABB aabb;
+    std::vector<Vertex> vertices;
+    std::vector<GLuint> indices;
+    glm::mat3 NormalMatrix;
+    glm::mat4 ModelMatrix;
+
+    CTriangle* cTriangles;
+    int cTrianglesCount;
+    bool close;
+
+    VerticeHitBox() {};
+    VerticeHitBox(std::vector<Vertex> vertices, std::vector<GLuint> indices, glm::mat4 modelMat) {
+        this->vertices = vertices;
+        this->indices = indices;      
+        this->cTrianglesCount = indices.size()/3;
+        cTriangles = new CTriangle[cTrianglesCount];
+        PrepareTriangles();
+    }
+
+    void Destroy()
     {
-        if (skins.empty())
-            return;
-        modelAABB.reset();  
-        for (Skin& skin : skins) {
-            skin.jointMatrices.resize(skin.joints.size());
-            for (size_t i = 0; i < skin.joints.size(); ++i) {
-                int jointNodeIndex = skin.joints[i];
-                skin.jointMatrices[i] = nodes[jointNodeIndex].globalMatrix * skin.inverseBind[i];             
-                glm::vec3 jointPos = glm::vec3(nodes[jointNodeIndex].globalMatrix[3]);
-                modelAABB.expand(jointPos);
+        delete[] cTriangles;
+        SetDefaults();
+    }
+
+    void PrepareTriangles()
+    {
+        CTriangle *Triangle = cTriangles;
+        int j = 0;
+        for (int i = 0; i < cTrianglesCount; i++)
+        {     
+            for (int v = 0; v < 3; v++)
+            {
+                glm::vec3 Vertex = vertices[indices[j]].position;  
+                glm::vec3 transformed = glm::vec3(ModelMatrix * glm::vec4(Vertex, 1.0f));
+                Triangle->Vertex[v] = transformed;
+                j++;
+            }
+            Triangle->Normal[0] = normalize(cross(Triangle->Vertex[1] - Triangle->Vertex[0], Triangle->Vertex[2] - Triangle->Vertex[0]));
+            Triangle->D[0] = -dot(Triangle->Normal[0], Triangle->Vertex[0]);
+
+            for (int e = 0; e < 3; e++)
+            {
+                Triangle->Edge[e] = Triangle->Vertex[(e + 1) % 3] - Triangle->Vertex[e];
+                Triangle->EdgeLength[e] = length(Triangle->Edge[e]);
+                Triangle->Edge[e] /= Triangle->EdgeLength[e];
+                Triangle->Normal[1 + e] = cross(Triangle->Edge[e], Triangle->Normal[0]);
+                Triangle->D[1 + e] = -dot(Triangle->Normal[1 + e], Triangle->Vertex[e]);
+            }
+            Triangle++;
+        }
+        if (cTrianglesCount == 0) return;
+        aabb.min = aabb.max = cTriangles[0].Vertex[0];
+        Triangle = cTriangles;
+
+        for (int t = 0; t < cTrianglesCount; t++)
+        {
+            for (int v = 0; v < 3; v++)
+            {
+                if (Triangle->Vertex[v].x < aabb.min.x) aabb.min.x = Triangle->Vertex[v].x;
+                if (Triangle->Vertex[v].x > aabb.max.x) aabb.max.x = Triangle->Vertex[v].x;
+                if (Triangle->Vertex[v].y < aabb.min.y) aabb.min.y = Triangle->Vertex[v].y;
+                if (Triangle->Vertex[v].y > aabb.max.y) aabb.max.y = Triangle->Vertex[v].y;
+                if (Triangle->Vertex[v].z < aabb.min.z) aabb.min.z = Triangle->Vertex[v].z;
+                if (Triangle->Vertex[v].z > aabb.max.z) aabb.max.z = Triangle->Vertex[v].z;
+            }
+            Triangle++;
+        }
+        assert(cTrianglesCount * 3 <= indices.size());
+        aabb.min -= RADIUS;
+        aabb.max += RADIUS;
+    }
+
+    void updateModelMatrix(const glm::mat4x4& ModelMatrix)
+    {
+        this->ModelMatrix = ModelMatrix;
+        this->NormalMatrix = glm::transpose(glm::inverse(glm::mat3x3(ModelMatrix)));
+        PrepareTriangles();
+    }
+
+    void SetDefaults()
+    {
+        NormalMatrix = glm::mat3();
+        ModelMatrix = glm::mat4();
+        cTrianglesCount = 0;
+        cTriangles = NULL;
+    }
+
+private:   
+};
+
+
+inline bool point_Box_Colission(VerticeHitBox& box, glm::vec3 position, glm::vec3& Movement)
+{
+    glm::vec3 newPosition = position + Movement;
+    float EPSILON = 0.000001f;
+    box.close = false;
+    if (newPosition.x < box.aabb.min.x) return false;
+    if (newPosition.x > box.aabb.max.x) return false;
+    if (newPosition.y < box.aabb.min.y) return false;
+    if (newPosition.y > box.aabb.max.y) return false;
+    if (newPosition.z < box.aabb.min.z) return false;
+    if (newPosition.z > box.aabb.max.z) return false;
+    box.close = true;
+    CTriangle* cTriangle = box.cTriangles;
+    for (int t = 0; t < box.cTrianglesCount; t++)
+    {
+        float Distance = glm::dot(cTriangle->Normal[0], newPosition) + cTriangle->D[0];
+        cTriangle->close = Distance > 0.0f && Distance < RADIUS;
+        if (cTriangle->close)
+        {
+            if (dot(cTriangle->Normal[1], newPosition) + cTriangle->D[1] < 0.0f)
+            {
+                if (dot(cTriangle->Normal[2], newPosition) + cTriangle->D[2] < 0.0f)
+                {
+                    if (dot(cTriangle->Normal[3], newPosition) + cTriangle->D[3] < 0.0f)
+                    {
+                        float offset = RADIUS - Distance;
+                        if (offset < EPSILON) return false;
+                        Movement += cTriangle->Normal[0] * offset;
+                        return true;
+                    }
+                }
             }
         }
 
-        float padding = 0.15f;
-        modelAABB.min -= glm::vec3(padding);
-        modelAABB.max += glm::vec3(padding);
+        cTriangle++;
     }
 
-
-    for nodes
-    if (node.glMeshIndex >= 0 && model.skins.size() == 0) {
-            const AABB& local = glMeshes[node.glMeshIndex].localAABB;
-            node.worldAABB = computeWorldAABB(local, node.globalMatrix);       
+    if (!box.close) return false;
+    CTriangle* Triangle = box.cTriangles;
+    for (int t = 0; t < box.cTrianglesCount; t++)
+    {
+        if (Triangle->close)
+        {
+            for (int e = 0; e < 3; e++)
+            {
+                glm::vec3 VCP = newPosition - Triangle->Vertex[e];
+                float EdotVCP = dot(Triangle->Edge[e], VCP);
+                if (EdotVCP > 0.0f && EdotVCP < Triangle->EdgeLength[e])
+                {
+                    glm::vec3 Normal = VCP - Triangle->Edge[e] * EdotVCP;
+                    float Distance = length(Normal);
+                    if (Distance > 0.0f && Distance < RADIUS)
+                    {
+                        Movement += Normal * ((RADIUS) / Distance - 1.0f);
+                        return true;
+                    }
+                }
+            }
         }
 
-
-
-
-
-void Object::updateWorldHitboxes()
-{
-    auto& ws = collision.worldShapes;
-
-    // clear old frame data
-    for (auto& vec : ws)
-        vec.clear();
-
-    for (int i = 0; i < model->hitboxes.size(); ++i) {
-        const ModelHitbox& hb = model->hitboxes[i];
-
-        const Node& node = model->nodes[hb.node];
-        glm::mat4 M = node.globalMatrix * hb.localOffset;
-
-        switch (hb.shape) {
-        case HitboxShape::Capsule:
-            ws[(int)HitboxShape::Capsule].push_back({
-                computeCapsuleWorld(hb, M),
-                i
-            });
-            break;
-        }
+        Triangle++;
     }
+
+    if (box.close) return false;
+    Triangle = box.cTriangles;
+    for (int t = 0; t < box.cTrianglesCount; t++)
+    {
+        if (Triangle->close)
+        {
+            for (int v = 0; v < 3; v++)
+            {
+                glm::vec3 Normal = newPosition - Triangle->Vertex[v];
+                float Distance = length(Normal);
+                if (Distance > 0.0f && Distance < RADIUS)
+                {
+                    Movement += Normal * ((RADIUS) / Distance - 1.0f);
+                    return true;
+                }
+            }
+        }
+
+        Triangle++;
+    }
+    return false;
 }
-
-
-std::array<std::vector<WorldShapeEntry>, ShapeCount> worldShapes;

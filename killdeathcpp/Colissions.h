@@ -4,9 +4,33 @@
 #include "HitBox.h"
 #include "tinyModel.h"
 
+//enum class WorldShape {
+//    CapsuleWorld,
+//    SphereWorld,
+//    BoxWorld
+//};
+//
+//struct WorldShapeEntry {
+//    WorldShape shape;
+//    int owner;
+//};
+
+
+
+struct ShapeContact
+{
+    bool isColliding; 
+    float penetrationDepth;
+    glm::vec3 normal;
+    glm::vec3 closestPoint;
+};
+
+
 struct ObjectCollision {
     AABB modelSpaceAABB;
     AABB worldAABB;
+    std::vector<CapsuleHitBoxWorld> capsuleLocs;
+    VerticeHitBox vHitbox;
 
     void updateModelAABBskins(tinyModel& model) {
         modelSpaceAABB.reset();
@@ -22,7 +46,6 @@ struct ObjectCollision {
     void updateModelAABBnodes(tinyModel& model)
     {
         modelSpaceAABB.reset();
-
         for (const Node& node : model.nodes) {
             if (node.glMeshIndex < 0)
                 continue;
@@ -30,129 +53,108 @@ struct ObjectCollision {
         }
     }
 
+    void updateWorldAABBV(glm::mat4 modelMatrix) {
+        vHitbox.updateWorld(modelMatrix);
+        worldAABB = computeWorldAABB(vHitbox.worldAABB, modelMatrix);
+    }
+
     void updateWorldAABB(glm::mat4 modelMatrix) {
         worldAABB = computeWorldAABB(modelSpaceAABB, modelMatrix);
     }
+
+    void updateCapsuleLocs(tinyModel& model, ObjectOrientation& orientation)
+    {
+        capsuleLocs.clear();
+        capsuleLocs.reserve(model.hitboxes.size());
+        for (const ModelHitbox& hb : model.hitboxes)
+        {
+            glm::mat4 boneWorld = orientation.modelMatrix * model.nodes[hb.node].globalMatrix;
+            CapsuleWorldLoc worldCapsuleloc = computeCapsuleWorld(hb, boneWorld, hb.localOffset);
+            CapsuleHitBoxWorld worldCapsule = { worldCapsuleloc, hb };
+            capsuleLocs.push_back(worldCapsule);
+        }
+    }
 };
 
-enum class WorldShape {
-    CapsuleWorld,
-    SphereWorld,
-    BoxWorld
-};
+inline glm::vec3 closestPointOnTriangle( const glm::vec3& p,const glm::vec3& a, const glm::vec3& b, const glm::vec3& c){
+    glm::vec3 ab = b - a;
+    glm::vec3 ac = c - a;
+    glm::vec3 ap = p - a;
+    float d1 = glm::dot(ab, ap);
+    float d2 = glm::dot(ac, ap);
+    if (d1 <= 0.0f && d2 <= 0.0f) return a;
 
-struct WorldShapeEntry {
-    WorldShape shape;
-    int owner;
-};
+    glm::vec3 bp = p - b;
+    float d3 = glm::dot(ab, bp);
+    float d4 = glm::dot(ac, bp);
+    if (d3 >= 0.0f && d4 <= d3) return b;
 
-struct CapsuleWorldLoc {
-    glm::vec3 p0;
-    glm::vec3 p1;
-    float radius;
-};
+    float vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f)
+    {
+        float v = d1 / (d1 - d3);
+        return a + v * ab;
+    }
 
-struct CapsuleHitBoxWorld {
-    CapsuleWorldLoc worldLoc;
-    ModelHitbox hitBox;
-};
+    glm::vec3 cp = p - c;
+    float d5 = glm::dot(ab, cp);
+    float d6 = glm::dot(ac, cp);
+    if (d6 >= 0.0f && d5 <= d6) return c;
 
+    float vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f)
+    {
+        float w = d2 / (d2 - d6);
+        return a + w * ac;
+    }
 
-inline CapsuleWorldLoc computeCapsuleWorld(const ModelHitbox& hb, const glm::mat4& globalMatrix, const glm::mat4& localOffset) {
-    glm::mat4 M = globalMatrix * localOffset;
-    CapsuleWorldLoc c;
-    c.p0 = glm::vec3(M * glm::vec4(0, hb.halfHeight, 0, 1));
-    c.p1 = glm::vec3(M * glm::vec4(0, -hb.halfHeight, 0, 1));
-    c.radius = hb.radius;
-    return c;
+    float va = d3 * d6 - d5 * d4;
+    if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f)
+    {
+        float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        return b + w * (c - b);
+    }
+
+    float denom = 1.0f / (va + vb + vc);
+    float v = vb * denom;
+    float w = vc * denom;
+    return a + ab * v + ac * w;
 }
 
+inline ShapeContact pointVertBoxCollision(const VerticeHitBox& box,const glm::vec3& point, float radius = 0.15f){
+    ShapeContact contact{};
+    contact.isColliding = false;
+    contact.penetrationDepth = 0.0f;
+    float deepestPenetration = 0.0f;
+    glm::vec3 bestNormal(0.0f);
+    glm::vec3 bestClosest(0.0f);
 
-inline bool point_Box_Colission(VerticeHitBox& box, glm::vec3 position, glm::vec3& Movement)
-{
-    glm::vec3 newPosition = position + Movement;
-    float EPSILON = 0.000001f;
-    box.close = false;
-    if (newPosition.x < box.aabb.min.x) return false;
-    if (newPosition.x > box.aabb.max.x) return false;
-    if (newPosition.y < box.aabb.min.y) return false;
-    if (newPosition.y > box.aabb.max.y) return false;
-    if (newPosition.z < box.aabb.min.z) return false;
-    if (newPosition.z > box.aabb.max.z) return false;
-    box.close = true;
-    CTriangle* cTriangle = box.cTriangles;
-    for (int t = 0; t < box.cTrianglesCount; t++)
+    for (const TriangleWorld& tri : box.worldTriangles)
     {
-        float Distance = glm::dot(cTriangle->Normal[0], newPosition) + cTriangle->D[0];
-        cTriangle->close = Distance > 0.0f && Distance < RADIUS;
-        if (cTriangle->close)
+        glm::vec3 closest = closestPointOnTriangle(point,tri.v0, tri.v1, tri.v2);
+        glm::vec3 delta = point - closest;
+        float dist = glm::length(delta);
+        if (dist < radius && dist > 0.000001f)
         {
-            if (dot(cTriangle->Normal[1], newPosition) + cTriangle->D[1] < 0.0f)
+            float penetration = radius - dist;
+            if (penetration > deepestPenetration)
             {
-                if (dot(cTriangle->Normal[2], newPosition) + cTriangle->D[2] < 0.0f)
-                {
-                    if (dot(cTriangle->Normal[3], newPosition) + cTriangle->D[3] < 0.0f)
-                    {
-                        float offset = RADIUS - Distance;
-                        if (offset < EPSILON) return false;
-                        Movement += cTriangle->Normal[0] * offset;
-                        return true;
-                    }
-                }
+                deepestPenetration = penetration;
+                bestNormal = delta / dist;
+                bestClosest = closest;
+                contact.isColliding = true;
             }
         }
-
-        cTriangle++;
     }
-
-    if (!box.close) return false;
-    CTriangle* Triangle = box.cTriangles;
-    for (int t = 0; t < box.cTrianglesCount; t++)
+    if (contact.isColliding)
     {
-        if (Triangle->close)
-        {
-            for (int e = 0; e < 3; e++)
-            {
-                glm::vec3 VCP = newPosition - Triangle->Vertex[e];
-                float EdotVCP = dot(Triangle->Edge[e], VCP);
-                if (EdotVCP > 0.0f && EdotVCP < Triangle->EdgeLength[e])
-                {
-                    glm::vec3 Normal = VCP - Triangle->Edge[e] * EdotVCP;
-                    float Distance = length(Normal);
-                    if (Distance > 0.0f && Distance < RADIUS)
-                    {
-                        Movement += Normal * ((RADIUS) / Distance - 1.0f);
-                        return true;
-                    }
-                }
-            }
-        }
-
-        Triangle++;
+        contact.penetrationDepth = deepestPenetration;
+        contact.normal = bestNormal;
+        contact.closestPoint = bestClosest;
     }
-
-    if (box.close) return false;
-    Triangle = box.cTriangles;
-    for (int t = 0; t < box.cTrianglesCount; t++)
-    {
-        if (Triangle->close)
-        {
-            for (int v = 0; v < 3; v++)
-            {
-                glm::vec3 Normal = newPosition - Triangle->Vertex[v];
-                float Distance = length(Normal);
-                if (Distance > 0.0f && Distance < RADIUS)
-                {
-                    Movement += Normal * ((RADIUS) / Distance - 1.0f);
-                    return true;
-                }
-            }
-        }
-
-        Triangle++;
-    }
-    return false;
+    return contact;
 }
+
 
 inline bool AABBPointColission(AABB& box, glm::vec3 position) {
     if (position.x < box.min.x) return false;
@@ -164,11 +166,24 @@ inline bool AABBPointColission(AABB& box, glm::vec3 position) {
     return true;
 }
 
+inline ShapeContact pointInCapsule(const glm::vec3& point, CapsuleWorldLoc capsule){
+    ShapeContact contact{};
+    glm::vec3 ab = capsule.p1 - capsule.p0;
+    glm::vec3 ap = point - capsule.p0;
+    float abLenSq = glm::dot(ab, ab);
+    float t = glm::dot(ap, ab) / abLenSq;
+    t = glm::clamp(t, 0.0f, 1.0f);
+    glm::vec3 closest = capsule.p0 + ab * t;
+    glm::vec3 delta = point - closest;
+    float dist = glm::length(delta);
+    contact.closestPoint = closest;
+    contact.penetrationDepth = capsule.radius - dist;
+    contact.isColliding = contact.penetrationDepth > 0.0f;
+    contact.normal = delta / dist;
+    return contact;
+}
 
-inline std::vector<glm::vec3> computeVertexNormals(
-    const std::vector<glm::vec3>& positions,
-    const std::vector<unsigned int>& indices
-) {
+inline std::vector<glm::vec3> computeVertexNormals( const std::vector<glm::vec3>& positions, const std::vector<unsigned int>& indices) {
     std::vector<glm::vec3> normals(positions.size(), glm::vec3(0.0f));
 
     for (size_t i = 0; i < indices.size(); i += 3) {

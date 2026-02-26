@@ -98,9 +98,6 @@
     <ClInclude Include="ObjectParams.h">
       <Filter>Header Files\ObjecthFiles</Filter>
     </ClInclude>
-    <ClInclude Include="ModelMesh.h">
-      <Filter>Header Files\ObjecthFiles</Filter>
-    </ClInclude>
     <ClInclude Include="shader.h">
       <Filter>Header Files\ShaderhFiles</Filter>
     </ClInclude>
@@ -195,6 +192,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="..\shaders\gltfModel.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\debugShader.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\debugShader.vs">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

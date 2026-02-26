@@ -79,6 +79,7 @@ int main(int argc, char* argv[]){
     shaders["model_Load"] = Shader("..\\shaders\\model_load.vs", "..\\shaders\\model_load.fs");
     shaders["gltfModel"] = Shader("..\\shaders\\gltfModel.vs", "..\\shaders\\gltfModel.fs");
     shaders["gltfModelSkinned"] = Shader("..\\shaders\\modelAnimation.vs", "..\\shaders\\modelAnimation.fs");
+    shaders["debugshader"] = Shader("..\\shaders\\debugShader.vs", "..\\shaders\\debugShader.fs");
 
     ObjectOrientation defaultObj = ObjectOrientation();
 
@@ -116,17 +117,23 @@ int main(int argc, char* argv[]){
     }
 
     DirLight basicLight;
-    Mesh cube(cubeVertices, cubeIndices);
 
-    MeshObject floor{cube, defaultObj, VerticeHitBox(cube.vertices, cube.indices, defaultObj.modelMatrix)};
-    
+    Mesh cube(cubeVertices, cubeIndices);
+    VerticeHitBox CubeVertHitbox;
+    CubeVertHitbox.buildFromMesh(cubeVertices, cubeIndices);
+    ObjectCollision defaultVertCollision;
+    defaultVertCollision.vHitbox = CubeVertHitbox;
+
+    MeshObject floor{cube, defaultObj, defaultVertCollision};
 
     ModelObject pack = { packgltf, defaultObj };
     ModelObject mina = { minaglft, defaultObj };
+    VerticeHitBox packvhb;
+    packvhb.buildFromModel(pack.model.glMeshes);
+    pack.colission.vHitbox = packvhb;
     pack.orientation.movePos(glm::vec3(0.0f, -3.0f, 2.0f));
-
-    pack.colission.updateModelAABBnodes(pack.model);
-    pack.colission.updateWorldAABB(pack.orientation.modelMatrix);
+    pack.colission.updateWorldAABBV(pack.orientation.modelMatrix);
+    
 
     mina.orientation.movePos(glm::vec3(3.0f, -4.9f, 2.0f));
     mina.orientation.rotate(glm::vec3(90.0f, 3.5f, 2.0f));
@@ -141,7 +148,7 @@ int main(int argc, char* argv[]){
 
     floor.orientation.changeSize(glm::vec3(100.0f, 0.0f, 100.0f));
     floor.orientation.movePos(glm::vec3(-1.0f, -5.0f, -1.0f));
-    floor.hitbox.updateModelMatrix(floor.orientation.modelMatrix);
+    floor.colission.updateWorldAABBV(floor.orientation.modelMatrix);
 
 
     glEnable(GL_DEPTH_TEST);
@@ -156,36 +163,42 @@ int main(int argc, char* argv[]){
         bool collided = false;
         glm::vec3 originalMovement = camera.movement;    
 
+        
         pack.orientation.changeView(camera.GetViewMatrix());
         renderer.drawModel(pack.model, pack.orientation);
-        //printf("modelspace pack min\n");
-        //printVec3(pack.colission.worldAABB.min);
-        //printf("modelspace pack max\n");
-        //printVec3(pack.colission.worldAABB.max);
         if (AABBPointColission(pack.colission.worldAABB, camera.position + camera.movement)) {
-            //printf("gfsdgfdgfds");
+            //printf("bababoey \n");
         }
+        
 
         mina.model.updateAnimation(deltaTime);
         mina.model.updateNodeTransforms();
         mina.model.updateSkins();
         mina.colission.updateModelAABBskins(mina.model);
         mina.colission.updateWorldAABB(mina.orientation.modelMatrix);
+        mina.colission.updateCapsuleLocs(mina.model, mina.orientation);
         mina.orientation.changeView(camera.GetViewMatrix());
         renderer.drawModel(mina.model, mina.orientation);
 
-        if (AABBPointColission(mina.colission.worldAABB, camera.position+camera.movement)) {
-            printf("gfsdgfdgfds");
+        if (AABBPointColission(mina.colission.worldAABB, camera.position+camera.movement)) {       
+            for (CapsuleHitBoxWorld& box : mina.colission.capsuleLocs) {
+                ShapeContact cContact = pointInCapsule(camera.position + camera.movement, box.worldLoc);
+                if (cContact.isColliding) {
+                    glm::vec3 offsetVec = cContact.penetrationDepth * cContact.normal;
+                    camera.movement += offsetVec;
+                    break;
+                }
+            }
         }
 
-
-        for (MeshObject* object : objects) {
-            grounded |= camera.isGrounded(object->hitbox.aabb);
+        for (MeshObject* object : objects) {           
             object->orientation.changeView(camera.GetViewMatrix());
             renderer.draw(object->mesh, object->orientation, silver);
-
-            if (point_Box_Colission(object->hitbox, camera.position, camera.movement)) {
+            ShapeContact tempContact = pointVertBoxCollision(object->colission.vHitbox, camera.position + camera.movement);
+            if (tempContact.isColliding) {
                 collided = true;
+                camera.movement += tempContact.normal * tempContact.penetrationDepth;
+                grounded |= camera.isGrounded(tempContact);
             }
         }
 

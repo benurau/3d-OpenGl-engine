@@ -6,6 +6,7 @@
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <Mesh.h>
 
 
 
@@ -51,6 +52,17 @@ struct ModelHitbox {
     float halfHeight;
 };
 
+struct CapsuleWorldLoc {
+    glm::vec3 p0;
+    glm::vec3 p1;
+    float radius;
+};
+
+struct CapsuleHitBoxWorld {
+    CapsuleWorldLoc worldLoc;
+    ModelHitbox hitBox;
+};
+
 
 inline AABB computeLocalAABB(const std::vector<Vertex>& vertices)
 {
@@ -87,103 +99,97 @@ inline AABB computeWorldAABB(const AABB& local, const glm::mat4& model)
     return world;
 }
 
+inline CapsuleWorldLoc computeCapsuleWorld(const ModelHitbox& hb, const glm::mat4& globalMatrix, const glm::mat4& localOffset) {
+    glm::mat4 M = globalMatrix * localOffset;
+    CapsuleWorldLoc c;
+    c.p0 = glm::vec3(M * glm::vec4(0, hb.halfHeight, 0, 1));
+    c.p1 = glm::vec3(M * glm::vec4(0, -hb.halfHeight, 0, 1));
+    c.radius = hb.radius;
+    return c;
+}
 
-class VerticeHitBox {
+struct TriangleLocal
+{
+    glm::vec3 v0, v1, v2;
+};
+
+struct TriangleWorld
+{
+    glm::vec3 v0, v1, v2;
+    glm::vec3 normal;
+};
+
+class VerticeHitBox
+{
 public:
-    AABB aabb;
-    std::vector<Vertex> vertices;
-    std::vector<GLuint> indices;
-    glm::mat3 NormalMatrix;
-    glm::mat4 ModelMatrix;
+    std::vector<TriangleLocal> localTriangles;
+    std::vector<TriangleWorld> worldTriangles;
+    AABB localAABB;
+    AABB worldAABB;
 
-    CTriangle* cTriangles;
-    int cTrianglesCount;
-    bool close;
 
-    VerticeHitBox() {};
-    VerticeHitBox(std::vector<Vertex> vertices, std::vector<GLuint> indices, glm::mat4 modelMat) {
-        this->vertices = vertices;
-        this->indices = indices;      
-        this->cTrianglesCount = indices.size()/3;
-        cTriangles = new CTriangle[cTrianglesCount];
-        PrepareTriangles();
-    }
-
-    void Destroy()
-    {
-        delete[] cTriangles;
-        SetDefaults();
-    }
-
-    void PrepareTriangles()
-    {
-        CTriangle *Triangle = cTriangles;
-        int j = 0;
-        for (int i = 0; i < cTrianglesCount; i++)
-        {     
-            for (int v = 0; v < 3; v++)
-            {
-                glm::vec3 Vertex = vertices[indices[j]].position;  
-                //std::cout << vertices[indices[v]].position.x <<"  "<< vertices[indices[v]].position.y<<"   " << vertices[indices[v]].position.z << "\n";
-                glm::vec3 transformed = glm::vec3(ModelMatrix * glm::vec4(Vertex, 1.0f));
-                //std::cout << transformed.x <<"  "<< transformed.y<<"   " << transformed.z << "\n";
-                Triangle->Vertex[v] = transformed;
-                j++;
-            }
-            Triangle->Normal[0] = normalize(cross(Triangle->Vertex[1] - Triangle->Vertex[0], Triangle->Vertex[2] - Triangle->Vertex[0]));
-            Triangle->D[0] = -dot(Triangle->Normal[0], Triangle->Vertex[0]);
-
-            for (int e = 0; e < 3; e++)
-            {
-                Triangle->Edge[e] = Triangle->Vertex[(e + 1) % 3] - Triangle->Vertex[e];
-                Triangle->EdgeLength[e] = length(Triangle->Edge[e]);
-                Triangle->Edge[e] /= Triangle->EdgeLength[e];
-                Triangle->Normal[1 + e] = cross(Triangle->Edge[e], Triangle->Normal[0]);
-                Triangle->D[1 + e] = -dot(Triangle->Normal[1 + e], Triangle->Vertex[e]);
-            }
-            Triangle++;
-        }
-        if (cTrianglesCount == 0) return;
-        aabb.min = aabb.max = cTriangles[0].Vertex[0];
-        Triangle = cTriangles;
-
-        for (int t = 0; t < cTrianglesCount; t++)
+    void buildFromMesh(const std::vector<Vertex>& vertices,const std::vector<GLuint>& indices){
+        localTriangles.clear();
+        worldTriangles.clear();
+        localAABB.reset();
+        for (size_t i = 0; i < indices.size(); i += 3)
         {
-            for (int v = 0; v < 3; v++)
-            {
-                if (Triangle->Vertex[v].x < aabb.min.x) aabb.min.x = Triangle->Vertex[v].x;
-                if (Triangle->Vertex[v].x > aabb.max.x) aabb.max.x = Triangle->Vertex[v].x;
-                if (Triangle->Vertex[v].y < aabb.min.y) aabb.min.y = Triangle->Vertex[v].y;
-                if (Triangle->Vertex[v].y > aabb.max.y) aabb.max.y = Triangle->Vertex[v].y;
-                if (Triangle->Vertex[v].z < aabb.min.z) aabb.min.z = Triangle->Vertex[v].z;
-                if (Triangle->Vertex[v].z > aabb.max.z) aabb.max.z = Triangle->Vertex[v].z;
-            }
-            //std::cout << min.x<< "  " << min.y<< "  "<< max.x << "   " <<max.y<<"\n";
-            Triangle++;
+            TriangleLocal t;
+            t.v0 = vertices[indices[i]].position;
+            t.v1 = vertices[indices[i + 1]].position;
+            t.v2 = vertices[indices[i + 2]].position;
+            localTriangles.push_back(t);
+            localAABB.expand(t.v0);
+            localAABB.expand(t.v1);
+            localAABB.expand(t.v2);
         }
-        assert(cTrianglesCount * 3 <= indices.size());
-        aabb.min -= RADIUS;
-        aabb.max += RADIUS;
+        worldTriangles.resize(localTriangles.size());
     }
 
-
-    void updateModelMatrix(const glm::mat4x4& ModelMatrix)
+    void buildFromModel(std::vector<Mesh>& meshes)
     {
-        this->ModelMatrix = ModelMatrix;
-        this->NormalMatrix = glm::transpose(glm::inverse(glm::mat3x3(ModelMatrix)));
-        PrepareTriangles();
+        localTriangles.clear();
+
+        for (const Mesh& mesh : meshes)
+        {
+            std::vector<Vertex> vertices = mesh.vertices;
+            std::vector<GLuint> indices = mesh.indices;
+
+            for (size_t i = 0; i < indices.size(); i += 3)
+            {
+                TriangleLocal tri;
+                tri.v0 = vertices[indices[i]].position;
+                tri.v1 = vertices[indices[i + 1]].position;
+                tri.v2 = vertices[indices[i + 2]].position;
+
+                localTriangles.push_back(tri);
+            }
+        }
+        worldTriangles.resize(localTriangles.size());
     }
 
-
-    void SetDefaults()
+    void updateWorld(const glm::mat4& modelMatrix)
     {
-        NormalMatrix = glm::mat3();
-        ModelMatrix = glm::mat4();
-        cTrianglesCount = 0;
-        cTriangles = NULL;
-    }
+        worldAABB.reset();
 
-private:   
+        for (size_t i = 0; i < localTriangles.size(); i++)
+        {
+            const TriangleLocal& src = localTriangles[i];
+            TriangleWorld& dst = worldTriangles[i];
+
+            dst.v0 = glm::vec3(modelMatrix * glm::vec4(src.v0, 1.0f));
+            dst.v1 = glm::vec3(modelMatrix * glm::vec4(src.v1, 1.0f));
+            dst.v2 = glm::vec3(modelMatrix * glm::vec4(src.v2, 1.0f));
+
+            dst.normal = glm::normalize(
+                glm::cross(dst.v1 - dst.v0, dst.v2 - dst.v0)
+            );
+
+            worldAABB.expand(dst.v0);
+            worldAABB.expand(dst.v1);
+            worldAABB.expand(dst.v2);
+        }
+    }
 };
 
 
