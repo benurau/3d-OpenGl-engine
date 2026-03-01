@@ -139,6 +139,7 @@ inline ShapeContact pointVertBoxCollision(const VerticeHitBox& box,const glm::ve
             float penetration = radius - dist;
             if (penetration > deepestPenetration)
             {
+                //printf("the distasnce to closest: %f \n", dist);
                 deepestPenetration = penetration;
                 bestNormal = delta / dist;
                 bestClosest = closest;

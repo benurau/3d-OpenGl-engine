@@ -11,6 +11,7 @@
 #include "HitBox.h"
 
 
+
 struct Node {
     int parent = -1;
     std::vector<int> children;
@@ -25,6 +26,7 @@ struct Node {
     int glMeshIndex = -1; 
     int skinIndex = -1;  
 
+    AABB localAABB;
     AABB worldAABB;
 };
 
@@ -173,8 +175,10 @@ private:
             dst.parent = -1;
             dst.skinIndex = src.skin;
 
-            if (src.mesh >= 0)
+            if (src.mesh >= 0) {
                 dst.glMeshIndex = meshNodeToGLMesh[src.mesh];
+                dst.localAABB = computeLocalAABB(glMeshes[src.mesh].vertices);
+            }
             else
                 dst.glMeshIndex = -1;
 
@@ -260,8 +264,7 @@ private:
             node.globalMatrix = node.localMatrix;
 
         if (node.glMeshIndex >= 0 && model.skins.size() == 0) {
-            const AABB& local = glMeshes[node.glMeshIndex].localAABB;
-            node.worldAABB = computeWorldAABB(local, node.globalMatrix);
+            node.worldAABB = computeWorldAABB(node.localAABB, node.globalMatrix);
         }
 
         for (int childIndex : node.children)
@@ -307,9 +310,7 @@ private:
             ReadAccessor(model, accessor, indices);
         }      
         std::vector<Vertex> vertices = ZipVertices(positions, normals, texcoords, tangents, joints, weights);
-        AABB localAABB = computeLocalAABB(vertices);
         Mesh mesh(vertices, indices);
-        mesh.localAABB = localAABB;
         
         if (primitive.material >= 0) {
             mesh.materialIndex = primitive.material;

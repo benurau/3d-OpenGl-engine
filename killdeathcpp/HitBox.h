@@ -6,8 +6,7 @@
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
-#include <Mesh.h>
-
+#include "Mesh.h"
 
 
 enum class HitboxShape {
@@ -146,14 +145,15 @@ public:
         worldTriangles.resize(localTriangles.size());
     }
 
-    void buildFromModel(std::vector<Mesh>& meshes)
+    void buildFromModel(const std::vector<Mesh>& meshes)
     {
         localTriangles.clear();
-
+        worldTriangles.clear();
+        localAABB.reset();    
         for (const Mesh& mesh : meshes)
         {
-            std::vector<Vertex> vertices = mesh.vertices;
-            std::vector<GLuint> indices = mesh.indices;
+            const std::vector<Vertex>& vertices = mesh.vertices;
+            const std::vector<GLuint>& indices = mesh.indices;
 
             for (size_t i = 0; i < indices.size(); i += 3)
             {
@@ -161,10 +161,14 @@ public:
                 tri.v0 = vertices[indices[i]].position;
                 tri.v1 = vertices[indices[i + 1]].position;
                 tri.v2 = vertices[indices[i + 2]].position;
-
                 localTriangles.push_back(tri);
+
+                localAABB.expand(tri.v0);
+                localAABB.expand(tri.v1);
+                localAABB.expand(tri.v2);
             }
         }
+
         worldTriangles.resize(localTriangles.size());
     }
 

@@ -150,7 +150,6 @@ int main(int argc, char* argv[]){
     floor.orientation.movePos(glm::vec3(-1.0f, -5.0f, -1.0f));
     floor.colission.updateWorldAABBV(floor.orientation.modelMatrix);
 
-
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -166,8 +165,12 @@ int main(int argc, char* argv[]){
         
         pack.orientation.changeView(camera.GetViewMatrix());
         renderer.drawModel(pack.model, pack.orientation);
+        renderer.drawAABB(pack.colission.worldAABB, pack.orientation.proj * pack.orientation.view, glm::vec3(1.0f, 1.0f, 0.0f), shaders["debugshader"]);
         if (AABBPointColission(pack.colission.worldAABB, camera.position + camera.movement)) {
-            //printf("bababoey \n");
+            ShapeContact contanct = pointVertBoxCollision(pack.colission.vHitbox, camera.position + camera.movement);
+            if (contanct.isColliding) {
+                printf("bababoobey\n");
+            }
         }
         
 

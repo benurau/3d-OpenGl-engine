@@ -5,6 +5,7 @@
 #include <glm/gtx/string_cast.hpp>
 
 
+
 Mesh::Mesh() {};
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices) {
