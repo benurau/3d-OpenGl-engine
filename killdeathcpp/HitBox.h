@@ -7,39 +7,13 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include "Mesh.h"
+#include "modelHelpers.h"
 
 
 enum class HitboxShape {
     Sphere,
     Capsule,
     Box
-};
-
-struct AABB {
-    glm::vec3 min;
-    glm::vec3 max;
-
-    AABB() {
-        min = glm::vec3(std::numeric_limits<float>::max());
-        max = glm::vec3(std::numeric_limits<float>::lowest());
-    }
-
-    void reset()
-    {
-        min = glm::vec3(FLT_MAX);
-        max = glm::vec3(-FLT_MAX);
-    }
-
-    void expand(const glm::vec3& p) {
-        min = glm::min(min, p);
-        max = glm::max(max, p);
-    }
-
-    void expand(const AABB& aabb)
-    {
-        expand(aabb.min);
-        expand(aabb.max);
-    }
 };
 
 
@@ -107,16 +81,6 @@ inline CapsuleWorldLoc computeCapsuleWorld(const ModelHitbox& hb, const glm::mat
     return c;
 }
 
-struct TriangleLocal
-{
-    glm::vec3 v0, v1, v2;
-};
-
-struct TriangleWorld
-{
-    glm::vec3 v0, v1, v2;
-    glm::vec3 normal;
-};
 
 class VerticeHitBox
 {
@@ -145,22 +109,30 @@ public:
         worldTriangles.resize(localTriangles.size());
     }
 
-    void buildFromModel(const std::vector<Mesh>& meshes)
-    {
+    void buildFromModel(const std::vector<Mesh>& glMeshes, std::vector<Node>& nodes){
         localTriangles.clear();
-        worldTriangles.clear();
-        localAABB.reset();    
-        for (const Mesh& mesh : meshes)
-        {
-            const std::vector<Vertex>& vertices = mesh.vertices;
-            const std::vector<GLuint>& indices = mesh.indices;
+        localAABB.reset();
 
-            for (size_t i = 0; i < indices.size(); i += 3)
+        for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
+        {
+            const Node& node = nodes[nodeIndex];
+
+            if (node.glMeshIndex < 0)
+                continue;
+
+            const Mesh& mesh = glMeshes[node.glMeshIndex];
+            const auto& vertices = mesh.vertices;
+            const auto& indices = mesh.indices;
+            glm::mat4 nodeMatrix = node.globalMatrix;
+
+            for (size_t i = 0; i + 2 < indices.size(); i += 3)
             {
                 TriangleLocal tri;
-                tri.v0 = vertices[indices[i]].position;
-                tri.v1 = vertices[indices[i + 1]].position;
-                tri.v2 = vertices[indices[i + 2]].position;
+
+                tri.v0 = glm::vec3(nodeMatrix * glm::vec4(vertices[indices[i]].position, 1.0f));
+                tri.v1 = glm::vec3(nodeMatrix * glm::vec4(vertices[indices[i + 1]].position, 1.0f));
+                tri.v2 = glm::vec3(nodeMatrix * glm::vec4(vertices[indices[i + 2]].position, 1.0f));
+
                 localTriangles.push_back(tri);
 
                 localAABB.expand(tri.v0);
@@ -168,7 +140,6 @@ public:
                 localAABB.expand(tri.v2);
             }
         }
-
         worldTriangles.resize(localTriangles.size());
     }
 

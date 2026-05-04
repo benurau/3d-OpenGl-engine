@@ -55,7 +55,7 @@ struct ObjectCollision {
 
     void updateWorldAABBV(glm::mat4 modelMatrix) {
         vHitbox.updateWorld(modelMatrix);
-        worldAABB = computeWorldAABB(vHitbox.worldAABB, modelMatrix);
+        worldAABB = vHitbox.worldAABB;
     }
 
     void updateWorldAABB(glm::mat4 modelMatrix) {

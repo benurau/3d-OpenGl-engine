@@ -53,6 +53,43 @@ struct Vertex {
     }
 };
 
+struct TriangleLocal
+{
+    glm::vec3 v0, v1, v2;
+};
+
+struct TriangleWorld
+{
+    glm::vec3 v0, v1, v2;
+    glm::vec3 normal;
+};
+
+struct AABB {
+    glm::vec3 min;
+    glm::vec3 max;
+
+    AABB() {
+        min = glm::vec3(std::numeric_limits<float>::max());
+        max = glm::vec3(std::numeric_limits<float>::lowest());
+    }
+
+    void reset()
+    {
+        min = glm::vec3(FLT_MAX);
+        max = glm::vec3(-FLT_MAX);
+    }
+
+    void expand(const glm::vec3& p) {
+        min = glm::min(min, p);
+        max = glm::max(max, p);
+    }
+
+    void expand(const AABB& aabb)
+    {
+        expand(aabb.min);
+        expand(aabb.max);
+    }
+};
 
 struct Texture {
     unsigned int id = 0;

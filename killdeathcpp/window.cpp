@@ -129,7 +129,7 @@ int main(int argc, char* argv[]){
     ModelObject pack = { packgltf, defaultObj };
     ModelObject mina = { minaglft, defaultObj };
     VerticeHitBox packvhb;
-    packvhb.buildFromModel(pack.model.glMeshes);
+    packvhb.buildFromModel(pack.model.glMeshes, pack.model.nodes);
     pack.colission.vHitbox = packvhb;
     pack.orientation.movePos(glm::vec3(0.0f, -3.0f, 2.0f));
     pack.colission.updateWorldAABBV(pack.orientation.modelMatrix);
@@ -169,11 +169,10 @@ int main(int argc, char* argv[]){
         if (AABBPointColission(pack.colission.worldAABB, camera.position + camera.movement)) {
             ShapeContact contanct = pointVertBoxCollision(pack.colission.vHitbox, camera.position + camera.movement);
             if (contanct.isColliding) {
-                printf("bababoobey\n");
+                camera.movement += contanct.normal * contanct.penetrationDepth;
             }
         }
         
-
         mina.model.updateAnimation(deltaTime);
         mina.model.updateNodeTransforms();
         mina.model.updateSkins();

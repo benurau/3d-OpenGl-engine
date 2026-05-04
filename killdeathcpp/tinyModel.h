@@ -12,24 +12,6 @@
 
 
 
-struct Node {
-    int parent = -1;
-    std::vector<int> children;
-
-    glm::vec3 translation{ 0.0f };
-    glm::quat rotation{ 1, 0, 0, 0 };
-    glm::vec3 scale{ 1.0f };
-
-    glm::mat4 localMatrix{ 1.0f };
-    glm::mat4 globalMatrix{ 1.0f };
-
-    int glMeshIndex = -1; 
-    int skinIndex = -1;  
-
-    AABB localAABB;
-    AABB worldAABB;
-};
-
 struct Skin {
     int skeletonRoot = -1;   
     glm::mat4 invRoot;
