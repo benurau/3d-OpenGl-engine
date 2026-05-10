@@ -29,8 +29,4 @@ This project focuses on real-time rendering, graphics programming fundamentals, 
 
 
 
----
 
-## Acknowledgements
-
-This project was inspired by various OpenGL and graphics programming projects from the community and educational resources focused on real-time rendering and engine development.
