@@ -27,31 +27,6 @@ This project focuses on real-time rendering, graphics programming fundamentals, 
 
 ---
 
-## Project Structure
-
-```bash
-3d-OpenGl-engine/
-│
-├── src/               # Engine source files
-├── shaders/           # GLSL shader programs
-├── assets/            # Models, textures, resources
-└── README.md
-```
-
-
-
-
-## Goals of the Project
-
-This engine was created to:
-
-- Learn low-level graphics programming
-- Understand rendering pipelines
-- Experiment with engine architecture
-- Explore shader programming
-- Build a foundation for future game development
-
----
 
 
 ---
