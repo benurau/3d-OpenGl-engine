@@ -23,6 +23,11 @@ void ObjectOrientation::movePos(const glm::vec3& delta) {
     updateModelMatrix();
 }
 
+void ObjectOrientation::setPos(const glm::vec3& delta) {
+    position = delta;
+    updateModelMatrix();
+}
+
 void ObjectOrientation::changeView(glm::vec3 position) {
     glm::mat4 viewMat = glm::mat4(1.0f);
     this->view = glm::translate(viewMat, position);

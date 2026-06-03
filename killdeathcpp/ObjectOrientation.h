@@ -20,6 +20,7 @@ public:
     void rotate(const glm::vec3& angleDelta);
     void changeSize(const glm::vec3& scaleFactor);
     void movePos(const glm::vec3& delta);
+    void setPos(const glm::vec3& delta);
     void changeView(glm::vec3 position);
     void changeView(glm::mat4 view);
     void changePerspective(float degrees);

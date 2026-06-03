@@ -35,14 +35,19 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Enemy.h" />
+    <ClInclude Include="Entity.h" />
     <ClInclude Include="Geometry3D.h" />
     <ClInclude Include="HitBox.h" />
     <ClInclude Include="Lights.h" />
     <ClInclude Include="Material.h" />
+    <ClInclude Include="MathHelpers.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="objects.h" />
     <ClInclude Include="ObjectOrientation.h" />
     <ClInclude Include="openglHelpers.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="Projectile.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="misc.h" />
     <ClInclude Include="shader.h" />

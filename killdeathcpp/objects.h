@@ -1,5 +1,6 @@
 #pragma once
 #include "tinyModel.h"
+#include "Camera.h"
 
 
 
@@ -11,9 +12,12 @@ struct MeshObject {
 
 
 struct ModelObject {
-    tinyModel& model;
+    tinyModel model;
     ObjectOrientation orientation;
     ObjectCollision colission;
+
 };
+
+
 
 

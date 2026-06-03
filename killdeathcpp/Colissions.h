@@ -53,12 +53,12 @@ struct ObjectCollision {
         }
     }
 
-    void updateWorldAABBV(glm::mat4 modelMatrix) {
+    void updateWorldAABBV(glm::mat4& modelMatrix) {
         vHitbox.updateWorld(modelMatrix);
         worldAABB = vHitbox.worldAABB;
     }
 
-    void updateWorldAABB(glm::mat4 modelMatrix) {
+    void updateWorldAABB(glm::mat4& modelMatrix) {
         worldAABB = computeWorldAABB(modelSpaceAABB, modelMatrix);
     }
 
@@ -139,7 +139,6 @@ inline ShapeContact pointVertBoxCollision(const VerticeHitBox& box,const glm::ve
             float penetration = radius - dist;
             if (penetration > deepestPenetration)
             {
-                //printf("the distasnce to closest: %f \n", dist);
                 deepestPenetration = penetration;
                 bestNormal = delta / dist;
                 bestClosest = closest;
@@ -157,13 +156,24 @@ inline ShapeContact pointVertBoxCollision(const VerticeHitBox& box,const glm::ve
 }
 
 
-inline bool AABBPointColission(AABB& box, glm::vec3 position) {
+inline bool AABBPointColission(const AABB& box, const glm::vec3 position) {
     if (position.x < box.min.x) return false;
     if (position.x > box.max.x) return false;
     if (position.y < box.min.y) return false;
     if (position.y > box.max.y) return false;
     if (position.z < box.min.z) return false;
     if (position.z > box.max.z) return false;
+    return true;
+}
+
+inline bool AABBvsAABB(const AABB& a, const AABB& b)
+{
+    if (a.max.x < b.min.x) return false;
+    if (a.min.x > b.max.x) return false;
+    if (a.max.y < b.min.y) return false;
+    if (a.min.y > b.max.y) return false;
+    if (a.max.z < b.min.z) return false;
+    if (a.min.z > b.max.z) return false;
     return true;
 }
 
@@ -208,7 +218,16 @@ inline std::vector<glm::vec3> computeVertexNormals( const std::vector<glm::vec3>
     return normals;
 }
 
-
+inline bool isGrounded(ShapeContact& contact, float objectHeight) {
+    if (contact.isColliding)
+    {
+        if (contact.normal.y > objectHeight)
+        {
+            return true;
+        }
+        return false;
+    }
+}
 
 
 #endif

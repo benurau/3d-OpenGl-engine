@@ -25,9 +25,6 @@
     <Filter Include="Source Files\RenderercppFiles">
       <UniqueIdentifier>{19bb2ad4-de5d-4f33-94d7-7ad79b43a8e7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\ObjecthFiles">
-      <UniqueIdentifier>{af6f1da6-d724-41e1-98d6-5124031eebbd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\ShaderhFiles">
       <UniqueIdentifier>{50d7dc2f-182f-4f3b-b7f0-8db215222bc1}</UniqueIdentifier>
     </Filter>
@@ -45,6 +42,12 @@
     </Filter>
     <Filter Include="shaders">
       <UniqueIdentifier>{27c87860-19d2-485b-b543-231951e64314}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\InteractionhFiles\ObjecthFiles">
+      <UniqueIdentifier>{af6f1da6-d724-41e1-98d6-5124031eebbd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\InteractionhFiles\gameFiles">
+      <UniqueIdentifier>{e1c3bdb8-99d1-4ee8-8844-b539dfae464e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -90,10 +93,10 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ObjectOrientation.h">
-      <Filter>Header Files\ObjecthFiles</Filter>
+      <Filter>Header Files\InteractionhFiles\ObjecthFiles</Filter>
     </ClInclude>
     <ClInclude Include="ObjectParams.h">
-      <Filter>Header Files\ObjecthFiles</Filter>
+      <Filter>Header Files\InteractionhFiles\ObjecthFiles</Filter>
     </ClInclude>
     <ClInclude Include="shader.h">
       <Filter>Header Files\ShaderhFiles</Filter>
@@ -123,16 +126,31 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tinyModel.h">
-      <Filter>Header Files\ObjecthFiles</Filter>
+      <Filter>Header Files\InteractionhFiles\ObjecthFiles</Filter>
     </ClInclude>
     <ClInclude Include="objects.h">
-      <Filter>Header Files\ObjecthFiles</Filter>
+      <Filter>Header Files\InteractionhFiles\ObjecthFiles</Filter>
     </ClInclude>
     <ClInclude Include="Mesh.h">
-      <Filter>Header Files\ObjecthFiles</Filter>
+      <Filter>Header Files\InteractionhFiles\ObjecthFiles</Filter>
     </ClInclude>
     <ClInclude Include="HitBox.h">
       <Filter>Header Files\InteractionhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity.h">
+      <Filter>Header Files\InteractionhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.h">
+      <Filter>Header Files\InteractionhFiles\gameFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Enemy.h">
+      <Filter>Header Files\InteractionhFiles\gameFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Projectile.h">
+      <Filter>Header Files\InteractionhFiles\gameFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="MathHelpers.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

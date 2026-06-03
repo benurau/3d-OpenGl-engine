@@ -77,6 +77,7 @@ public:
 
     void updateAnimation(float deltaTime)
     {
+        if (animations.empty() || activeAnimation < 0) return;
         Animation& anim = animations[activeAnimation];
         float prevTime = animationTime;
         animationTime = fmod(animationTime + deltaTime, anim.duration);
@@ -85,10 +86,11 @@ public:
             Node& node = nodes[channel.nodeIndex];
             AnimationSampler& sampler = anim.samplers[channel.samplerIndex];
 
-            if (animationTime < sampler.inputs[sampler.lastIndex])sampler.lastIndex = 0;
+            if (animationTime < sampler.inputs[sampler.lastIndex]) sampler.lastIndex = 0;
             size_t i = sampler.lastIndex;
             while (i + 1 < sampler.inputs.size() && sampler.inputs[i + 1] <= animationTime) i++;
             if (i + 1 >= sampler.inputs.size()) i = 0;
+            sampler.lastIndex = i;
 
             size_t j = i + 1;
             float t0 = sampler.inputs[i];
@@ -115,7 +117,6 @@ public:
         }
     }
 
-
     void updateSkins()
     {
         if (skins.empty())
@@ -129,12 +130,28 @@ public:
         }
     } 
 
+    void setAnimation(int index, bool resetTime = true)
+    {
+        if (index < 0 || index >= animations.size()) {
+            return;
+        }
+        if (activeAnimation == index)
+            return;
+
+        activeAnimation = index;
+        if (resetTime)
+            animationTime = 0.0f;
+
+        for (auto& sampler : animations[activeAnimation].samplers)
+            sampler.lastIndex = 0;
+    }
+
 private:
     tinygltf::TinyGLTF loader;
     std::string err, warn;
     std::vector<int> meshNodeToGLMesh;
     std::vector<Animation> animations;
-    int activeAnimation = 0;
+    int activeAnimation = -1;
     float animationTime = 0.0f;
 
 
