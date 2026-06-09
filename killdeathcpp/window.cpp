@@ -9,7 +9,9 @@
 #include "tinyModel.h"
 #include "Mesh.h"
 #include "Player.h"
-#include "Enemy.h"
+#include "EnemyManager.h"
+#include "ProjectileManager.h"
+#include "SceneManager.h"
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -22,8 +24,6 @@ Camera camera;
 void errorCallback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
 }
-
-std::vector<Projectile> projectiles;
 
 void processKeyboard(GLFWwindow* window, Player& player);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
@@ -179,14 +179,23 @@ int main(int argc, char* argv[]){
     Projectile basicProjectile{ objectCube, basicProjectileType };
     basicProjectile.object.orientation.changeSize(glm::vec3(-0.9f));
     basicProjectile.object.colission.updateWorldAABB(basicProjectile.object.orientation.modelMatrix);
-    for (int i = 0; i < 100; i++){
-        projectiles.push_back(basicProjectile);
-    }
+
+    ProjectileManager projectileManager;
+    projectileManager.AddProjectile(basicProjectile, 100);
+
+    EnemyManager enemyManager;
+    enemyManager.AddEnemy(basicEnemy);
+    enemyManager.AddEnemy(skeletonEnemy);
 
     mina.orientation.movePos(glm::vec3(3.0f, -4.9f, 2.0f));
     mina.orientation.rotate(glm::vec3(90.0f, 3.5f, 2.0f));
 
-    
+    SceneManager sceneManager;
+    sceneManager.Add(floor);
+    sceneManager.Add(pack);
+    sceneManager.Add(mina);
+
+
 
     Light pointLight;
     pointLight.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
@@ -211,9 +220,7 @@ int main(int argc, char* argv[]){
         bool grounded = false;      
         bool collided = false;
         glm::vec3 originalMovement = player.movement;    
-        
-        pack.orientation.changeView(camera.GetViewMatrix());
-        renderer.drawModel(pack.model, pack.orientation);
+      
         renderer.drawAABB(pack.colission.worldAABB, pack.orientation.proj * pack.orientation.view, glm::vec3(1.0f, 1.0f, 0.0f), shaders["debugshader"]);
         if (AABBPointColission(pack.colission.worldAABB, player.object.orientation.position + player.movement)) {
             ShapeContact contanct = pointVertBoxCollision(pack.colission.vHitbox, player.object.orientation.position + player.movement);
@@ -221,15 +228,6 @@ int main(int argc, char* argv[]){
                 player.movement += contanct.normal * contanct.penetrationDepth;
             }
         }
-        
-        mina.model.updateAnimation(deltaTime);
-        mina.model.updateNodeTransforms();
-        mina.model.updateSkins();
-        mina.colission.updateModelAABBskins(mina.model);
-        mina.colission.updateWorldAABB(mina.orientation.modelMatrix);
-        mina.colission.updateCapsuleLocs(mina.model, mina.orientation);
-        mina.orientation.changeView(camera.GetViewMatrix());
-        renderer.drawModel(mina.model, mina.orientation);
 
         if (AABBPointColission(mina.colission.worldAABB, player.object.orientation.position + player.movement)) {
             for (CapsuleHitBoxWorld& box : mina.colission.capsuleLocs) {
@@ -242,37 +240,18 @@ int main(int argc, char* argv[]){
             }
         }
 
-        UpdateEnemy(skeletonEnemy, player.object.orientation.position, deltaTime, projectiles);
-        skeletonEnemy.object.model.updateAnimation(deltaTime);
-        skeletonEnemy.object.model.updateNodeTransforms();
-        skeletonEnemy.object.model.updateSkins();
-        skeletonEnemy.object.colission.updateModelAABBskins(skeletonEnemy.object.model);
-        skeletonEnemy.object.colission.updateWorldAABB(skeletonEnemy.object.orientation.modelMatrix);
-        skeletonEnemy.object.colission.updateCapsuleLocs(skeletonEnemy.object.model, skeletonEnemy.object.orientation);
-        skeletonEnemy.object.orientation.changeView(camera.GetViewMatrix());
-        renderer.drawModel(skeletonEnemy.object.model, skeletonEnemy.object.orientation);
+        sceneManager.Update(deltaTime);
+        sceneManager.Render(renderer, silver, camera);
 
-        basicEnemy.object.orientation.changeView(camera.GetViewMatrix());
-        renderer.draw(basicEnemy.object.mesh, basicEnemy.object.orientation, silver);
+        enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
+        enemyManager.Render(renderer, silver, camera);
 
-        UpdateEnemy(basicEnemy, player.object.orientation.position, deltaTime, projectiles);
+        projectileManager.Update(deltaTime);
+        projectileManager.Render(renderer, silver, camera);
+        projectileManager.CheckPlayerCollision(player);
 
-        for (Projectile& p : projectiles) {
-            if (p.active) {
-                p.object.orientation.changeView(camera.GetViewMatrix());
-                UpdateProjectile(p, deltaTime);
-                p.object.colission.updateWorldAABBV(basicProjectile.object.orientation.modelMatrix);
-                renderer.draw(p.object.mesh, p.object.orientation, silver);
-                bool tempContact = AABBvsAABB(p.object.colission.worldAABB, player.object.colission.worldAABB);
-                if (tempContact) {
-                    printf("colliding in projehctiles tyiipppiii \n");
-                }
-            }
-        }
 
         for (MeshObject* object : objects) {           
-            object->orientation.changeView(camera.GetViewMatrix());
-            renderer.draw(object->mesh, object->orientation, silver);
             ShapeContact tempContact = pointVertBoxCollision(object->colission.vHitbox, player.object.orientation.position + player.movement);
             if (tempContact.isColliding) {
                 collided = true;
