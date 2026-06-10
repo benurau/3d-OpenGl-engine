@@ -35,19 +35,5 @@ public:
         }
     }
 
-    void CheckPlayerCollision(Player& player)
-    {
-        for (Projectile& p : projectiles)
-        {
-            if (!p.active)
-                continue;
-
-            if (AABBvsAABB(p.object.colission.worldAABB, player.object.colission.worldAABB))
-            {
-                printf("player hit\n");
-            }
-        }
-    }
-
 };
 

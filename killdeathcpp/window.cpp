@@ -12,6 +12,7 @@
 #include "EnemyManager.h"
 #include "ProjectileManager.h"
 #include "SceneManager.h"
+#include "CollisionResponse.h"
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -216,27 +217,21 @@ int main(int argc, char* argv[]){
         lastFrame = currentFrame;
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        processKeyboard(window, player); 
-        bool grounded = false;      
-        bool collided = false;
+        processKeyboard(window, player);
+        player.grounded = false;
+   
         glm::vec3 originalMovement = player.movement;    
       
-        renderer.drawAABB(pack.colission.worldAABB, pack.orientation.proj * pack.orientation.view, glm::vec3(1.0f, 1.0f, 0.0f), shaders["debugshader"]);
+
         if (AABBPointColission(pack.colission.worldAABB, player.object.orientation.position + player.movement)) {
             ShapeContact contanct = pointVertBoxCollision(pack.colission.vHitbox, player.object.orientation.position + player.movement);
-            if (contanct.isColliding) {
-                player.movement += contanct.normal * contanct.penetrationDepth;
-            }
+            player.movement = ResolveColissionPushBack(player.movement, contanct);
         }
 
         if (AABBPointColission(mina.colission.worldAABB, player.object.orientation.position + player.movement)) {
             for (CapsuleHitBoxWorld& box : mina.colission.capsuleLocs) {
-                ShapeContact cContact = pointInCapsule(camera.position + player.movement, box.worldLoc);
-                if (cContact.isColliding) {
-                    glm::vec3 offsetVec = cContact.penetrationDepth * cContact.normal;
-                    player.movement += offsetVec;
-                    break;
-                }
+                ShapeContact contanct = pointInCapsule(camera.position + player.movement, box.worldLoc);
+                player.movement = ResolveColissionPushBack(player.movement, contanct);
             }
         }
 
@@ -248,18 +243,18 @@ int main(int argc, char* argv[]){
 
         projectileManager.Update(deltaTime);
         projectileManager.Render(renderer, silver, camera);
-        projectileManager.CheckPlayerCollision(player);
+        //projectileManager.CheckPlayerCollision(player);
 
 
         for (MeshObject* object : objects) {           
             ShapeContact tempContact = pointVertBoxCollision(object->colission.vHitbox, player.object.orientation.position + player.movement);
             if (tempContact.isColliding) {
-                collided = true;
                 player.movement += tempContact.normal * tempContact.penetrationDepth;
-                grounded |= isGrounded(tempContact, player.object.colission.worldAABB.min.y);
+                player.grounded |= isGrounded(tempContact, player.object.colission.worldAABB.min.y);
             }
         }
-        updatePlayer(collided, grounded, player, originalMovement, deltaTime);
+
+        updatePlayer(player, originalMovement, deltaTime);
         camera.position = player.object.orientation.position + glm::vec3(0, player.cameraHeight, 0);
         glfwPollEvents();
         glfwSwapBuffers(window);

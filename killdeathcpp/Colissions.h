@@ -4,18 +4,6 @@
 #include "HitBox.h"
 #include "tinyModel.h"
 
-//enum class WorldShape {
-//    CapsuleWorld,
-//    SphereWorld,
-//    BoxWorld
-//};
-//
-//struct WorldShapeEntry {
-//    WorldShape shape;
-//    int owner;
-//};
-
-
 
 struct ShapeContact
 {
