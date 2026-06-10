@@ -13,6 +13,7 @@
 #include "ProjectileManager.h"
 #include "SceneManager.h"
 #include "CollisionResponse.h"
+#include "ColisionManager.h"
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -134,7 +135,9 @@ int main(int argc, char* argv[]){
     VerticeHitBox CubeVertHitbox;
     CubeVertHitbox.buildFromMesh(cubeVertices, cubeIndices);
     ObjectCollision defaultVertCollision;
-    defaultVertCollision.vHitbox = CubeVertHitbox;
+    defaultVertCollision.setVerticeHitBox(CubeVertHitbox);
+    defaultVertCollision.modelSpaceAABB = CubeVertHitbox.localAABB;
+
 
     MeshObject floor{cube, defaultObj, defaultVertCollision};
 
@@ -146,7 +149,8 @@ int main(int argc, char* argv[]){
 
     VerticeHitBox packvhb;
     packvhb.buildFromModel(pack.model.glMeshes, pack.model.nodes);
-    pack.colission.vHitbox = packvhb;
+    pack.colission.setVerticeHitBox(packvhb);
+    pack.colission.modelSpaceAABB = packvhb.localAABB;
     pack.orientation.movePos(glm::vec3(0.0f, -3.0f, 2.0f));
     pack.colission.updateWorldAABBV(pack.orientation.modelMatrix);
     
@@ -191,20 +195,17 @@ int main(int argc, char* argv[]){
     mina.orientation.movePos(glm::vec3(3.0f, -4.9f, 2.0f));
     mina.orientation.rotate(glm::vec3(90.0f, 3.5f, 2.0f));
 
+    ColissionManager colMgr;
+
     SceneManager sceneManager;
     sceneManager.Add(floor);
     sceneManager.Add(pack);
     sceneManager.Add(mina);
 
-
-
     Light pointLight;
     pointLight.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
     pointLight.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
     pointLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
-
-    std::vector<MeshObject*> objects;
-    objects.emplace_back(&floor);
 
     floor.orientation.changeSize(glm::vec3(100.0f, 0.0f, 100.0f));
     floor.orientation.movePos(glm::vec3(-1.0f, -5.0f, -1.0f));
@@ -220,22 +221,14 @@ int main(int argc, char* argv[]){
         processKeyboard(window, player);
         player.grounded = false;
    
-        glm::vec3 originalMovement = player.movement;    
-      
-
-        if (AABBPointColission(pack.colission.worldAABB, player.object.orientation.position + player.movement)) {
-            ShapeContact contanct = pointVertBoxCollision(pack.colission.vHitbox, player.object.orientation.position + player.movement);
-            player.movement = ResolveColissionPushBack(player.movement, contanct);
-        }
-
-        if (AABBPointColission(mina.colission.worldAABB, player.object.orientation.position + player.movement)) {
-            for (CapsuleHitBoxWorld& box : mina.colission.capsuleLocs) {
-                ShapeContact contanct = pointInCapsule(camera.position + player.movement, box.worldLoc);
-                player.movement = ResolveColissionPushBack(player.movement, contanct);
-            }
-        }
+        glm::vec3 originalMovement = player.movement;
 
         sceneManager.Update(deltaTime);
+
+        colMgr.CheckSceneCollision(player, sceneManager, camera.position);
+        colMgr.CheckEnemyCollision(player, enemyManager, camera.position);
+        colMgr.CheckProjectileCollision(player, projectileManager);
+
         sceneManager.Render(renderer, silver, camera);
 
         enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
@@ -243,16 +236,6 @@ int main(int argc, char* argv[]){
 
         projectileManager.Update(deltaTime);
         projectileManager.Render(renderer, silver, camera);
-        //projectileManager.CheckPlayerCollision(player);
-
-
-        for (MeshObject* object : objects) {           
-            ShapeContact tempContact = pointVertBoxCollision(object->colission.vHitbox, player.object.orientation.position + player.movement);
-            if (tempContact.isColliding) {
-                player.movement += tempContact.normal * tempContact.penetrationDepth;
-                player.grounded |= isGrounded(tempContact, player.object.colission.worldAABB.min.y);
-            }
-        }
 
         updatePlayer(player, originalMovement, deltaTime);
         camera.position = player.object.orientation.position + glm::vec3(0, player.cameraHeight, 0);

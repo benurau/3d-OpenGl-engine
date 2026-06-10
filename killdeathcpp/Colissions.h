@@ -4,21 +4,36 @@
 #include "HitBox.h"
 #include "tinyModel.h"
 
-
-struct ShapeContact
-{
+struct ShapeContact {
     bool isColliding; 
     float penetrationDepth;
     glm::vec3 normal;
     glm::vec3 closestPoint;
 };
 
-
 struct ObjectCollision {
     AABB modelSpaceAABB;
     AABB worldAABB;
-    std::vector<CapsuleHitBoxWorld> capsuleLocs;
-    VerticeHitBox vHitbox;
+    bool hasVertices = false;
+    bool hasCapsules = false;
+
+    void setVerticeHitBox(const VerticeHitBox& vhb) {
+        vHitbox = vhb;
+        hasVertices = true;
+    }
+
+    const VerticeHitBox& getVerticeHitBox() const {
+        return vHitbox;
+    }
+
+    void setCapsuleLocs(const std::vector<CapsuleHitBoxWorld>& locs) {
+        capsuleLocs = locs;
+        hasCapsules = !capsuleLocs.empty();
+    }
+
+    const std::vector<CapsuleHitBoxWorld>& getCapsuleLocs() const {
+        return capsuleLocs;
+    }
 
     void updateModelAABBskins(tinyModel& model) {
         modelSpaceAABB.reset();
@@ -44,6 +59,7 @@ struct ObjectCollision {
     void updateWorldAABBV(glm::mat4& modelMatrix) {
         vHitbox.updateWorld(modelMatrix);
         worldAABB = vHitbox.worldAABB;
+        hasVertices = true;
     }
 
     void updateWorldAABB(glm::mat4& modelMatrix) {
@@ -61,7 +77,12 @@ struct ObjectCollision {
             CapsuleHitBoxWorld worldCapsule = { worldCapsuleloc, hb };
             capsuleLocs.push_back(worldCapsule);
         }
+        hasCapsules = !capsuleLocs.empty();
     }
+
+private:
+    std::vector<CapsuleHitBoxWorld> capsuleLocs;
+    VerticeHitBox vHitbox;
 };
 
 inline glm::vec3 closestPointOnTriangle( const glm::vec3& p,const glm::vec3& a, const glm::vec3& b, const glm::vec3& c){
@@ -109,24 +130,20 @@ inline glm::vec3 closestPointOnTriangle( const glm::vec3& p,const glm::vec3& a, 
     return a + ab * v + ac * w;
 }
 
-inline ShapeContact pointVertBoxCollision(const VerticeHitBox& box,const glm::vec3& point, float radius = 0.15f){
+inline ShapeContact pointVertBoxCollision(const VerticeHitBox& box, const glm::vec3& point, float radius = 0.15f) {
     ShapeContact contact{};
     contact.isColliding = false;
     contact.penetrationDepth = 0.0f;
     float deepestPenetration = 0.0f;
     glm::vec3 bestNormal(0.0f);
     glm::vec3 bestClosest(0.0f);
-
-    for (const TriangleWorld& tri : box.worldTriangles)
-    {
-        glm::vec3 closest = closestPointOnTriangle(point,tri.v0, tri.v1, tri.v2);
+    for (const TriangleWorld& tri : box.worldTriangles) {
+        glm::vec3 closest = closestPointOnTriangle(point, tri.v0, tri.v1, tri.v2);
         glm::vec3 delta = point - closest;
         float dist = glm::length(delta);
-        if (dist < radius && dist > 0.000001f)
-        {
+        if (dist < radius && dist > 0.000001f) {
             float penetration = radius - dist;
-            if (penetration > deepestPenetration)
-            {
+            if (penetration > deepestPenetration) {
                 deepestPenetration = penetration;
                 bestNormal = delta / dist;
                 bestClosest = closest;
@@ -134,8 +151,7 @@ inline ShapeContact pointVertBoxCollision(const VerticeHitBox& box,const glm::ve
             }
         }
     }
-    if (contact.isColliding)
-    {
+    if (contact.isColliding) {
         contact.penetrationDepth = deepestPenetration;
         contact.normal = bestNormal;
         contact.closestPoint = bestClosest;
@@ -143,6 +159,39 @@ inline ShapeContact pointVertBoxCollision(const VerticeHitBox& box,const glm::ve
     return contact;
 }
 
+inline ShapeContact AABBvsVertBox(const AABB& aabb, const VerticeHitBox& box) {
+    ShapeContact contact{};
+    contact.isColliding = false;
+    contact.penetrationDepth = 0.0f;
+    float deepestPenetration = 0.0f;
+    glm::vec3 bestNormal(0.0f);
+    glm::vec3 bestClosest(0.0f);
+    glm::vec3 center = (aabb.min + aabb.max) * 0.5f;
+    glm::vec3 halfExtents = (aabb.max - aabb.min) * 0.5f;
+    for (const TriangleWorld& tri : box.worldTriangles) {
+        glm::vec3 triClosest = closestPointOnTriangle(center, tri.v0, tri.v1, tri.v2);
+        glm::vec3 delta = center - triClosest;
+        float dist = glm::length(delta);
+        if (dist < 0.000001f) continue;
+        glm::vec3 dir = delta / dist;
+        float effectiveRadius = glm::dot(glm::abs(dir), halfExtents);
+        if (dist <= effectiveRadius) {
+            float penetration = effectiveRadius - dist;
+            if (penetration > deepestPenetration) {
+                deepestPenetration = penetration;
+                bestNormal = dir;
+                bestClosest = triClosest;
+                contact.isColliding = true;
+            }
+        }
+    }
+    if (contact.isColliding) {
+        contact.penetrationDepth = deepestPenetration;
+        contact.normal = bestNormal;
+        contact.closestPoint = bestClosest;
+    }
+    return contact;
+}
 
 inline bool AABBPointColission(const AABB& box, const glm::vec3 position) {
     if (position.x < box.min.x) return false;
@@ -154,8 +203,7 @@ inline bool AABBPointColission(const AABB& box, const glm::vec3 position) {
     return true;
 }
 
-inline bool AABBvsAABB(const AABB& a, const AABB& b)
-{
+inline bool AABBvsAABB(const AABB& a, const AABB& b) {
     if (a.max.x < b.min.x) return false;
     if (a.min.x > b.max.x) return false;
     if (a.max.y < b.min.y) return false;
@@ -163,6 +211,61 @@ inline bool AABBvsAABB(const AABB& a, const AABB& b)
     if (a.max.z < b.min.z) return false;
     if (a.min.z > b.max.z) return false;
     return true;
+}
+
+inline ShapeContact AABBvsAABBContact(const AABB& a, const AABB& b) {
+    ShapeContact contact{};
+    contact.isColliding = false;
+    glm::vec3 overlap = glm::vec3(
+        glm::min(a.max.x, b.max.x) - glm::max(a.min.x, b.min.x),
+        glm::min(a.max.y, b.max.y) - glm::max(a.min.y, b.min.y),
+        glm::min(a.max.z, b.max.z) - glm::max(a.min.z, b.min.z)
+    );
+    if (overlap.x >= 0.0f && overlap.y >= 0.0f && overlap.z >= 0.0f) {
+        contact.isColliding = true;
+        float minOverlap = glm::min(overlap.x, glm::min(overlap.y, overlap.z));
+        glm::vec3 aCenter = (a.min + a.max) * 0.5f;
+        glm::vec3 bCenter = (b.min + b.max) * 0.5f;
+        glm::vec3 dir = bCenter - aCenter;
+        if (overlap.x == minOverlap) {
+            contact.normal = glm::vec3(dir.x > 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f);
+            contact.penetrationDepth = overlap.x;
+        } else if (overlap.y == minOverlap) {
+            contact.normal = glm::vec3(0.0f, dir.y > 0.0f ? 1.0f : -1.0f, 0.0f);
+            contact.penetrationDepth = overlap.y;
+        } else {
+            contact.normal = glm::vec3(0.0f, 0.0f, dir.z > 0.0f ? 1.0f : -1.0f);
+            contact.penetrationDepth = overlap.z;
+        }
+    }
+    return contact;
+}
+
+inline ShapeContact pointInAABB(const glm::vec3& point, const AABB& box) {
+    ShapeContact contact{};
+    contact.isColliding = false;
+    if (point.x >= box.min.x && point.x <= box.max.x &&
+        point.y >= box.min.y && point.y <= box.max.y &&
+        point.z >= box.min.z && point.z <= box.max.z) {
+        contact.isColliding = true;
+        glm::vec3 center = (box.min + box.max) * 0.5f;
+        glm::vec3 halfExtents = (box.max - box.min) * 0.5f;
+        glm::vec3 localPoint = point - center;
+        glm::vec3 distToEdge = halfExtents - glm::abs(localPoint);
+        float minDist = glm::min(distToEdge.x, glm::min(distToEdge.y, distToEdge.z));
+        if (distToEdge.x == minDist) {
+            contact.normal = glm::vec3(localPoint.x > 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f);
+            contact.penetrationDepth = halfExtents.x - glm::abs(localPoint.x);
+        } else if (distToEdge.y == minDist) {
+            contact.normal = glm::vec3(0.0f, localPoint.y > 0.0f ? 1.0f : -1.0f, 0.0f);
+            contact.penetrationDepth = halfExtents.y - glm::abs(localPoint.y);
+        } else {
+            contact.normal = glm::vec3(0.0f, 0.0f, localPoint.z > 0.0f ? 1.0f : -1.0f);
+            contact.penetrationDepth = halfExtents.z - glm::abs(localPoint.z);
+        }
+        contact.closestPoint = point - contact.normal * contact.penetrationDepth;
+    }
+    return contact;
 }
 
 inline ShapeContact pointInCapsule(const glm::vec3& point, CapsuleWorldLoc capsule){
@@ -215,6 +318,7 @@ inline bool isGrounded(ShapeContact& contact, float objectHeight) {
         }
         return false;
     }
+    return false;
 }
 
 
