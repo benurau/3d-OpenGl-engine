@@ -75,12 +75,19 @@ public:
     }
 
 
-    void updateAnimation(float deltaTime)
+    void updateAnimation(float deltaTime, bool loop = true)
     {
         if (animations.empty() || activeAnimation < 0) return;
         Animation& anim = animations[activeAnimation];
-        float prevTime = animationTime;
-        animationTime = fmod(animationTime + deltaTime, anim.duration);
+
+        if (!loop) {
+            animationTime += deltaTime;
+            if (animationTime >= anim.duration) {
+                animationTime = anim.duration;
+            }
+        } else {
+            animationTime = fmod(animationTime + deltaTime, anim.duration);
+        }
 
         for (const AnimationChannel& channel : anim.channels) {
             Node& node = nodes[channel.nodeIndex];
@@ -89,10 +96,16 @@ public:
             if (animationTime < sampler.inputs[sampler.lastIndex]) sampler.lastIndex = 0;
             size_t i = sampler.lastIndex;
             while (i + 1 < sampler.inputs.size() && sampler.inputs[i + 1] <= animationTime) i++;
-            if (i + 1 >= sampler.inputs.size()) i = 0;
+
+            if (!loop) {
+                if (i + 1 >= sampler.inputs.size()) i = sampler.inputs.size() - 1;
+            } else {
+                if (i + 1 >= sampler.inputs.size()) i = 0;
+            }
             sampler.lastIndex = i;
 
             size_t j = i + 1;
+            if (j >= sampler.inputs.size()) j = i;
             float t0 = sampler.inputs[i];
             float t1 = sampler.inputs[j];
             float alpha = (t1 > t0) ? (animationTime - t0) / (t1 - t0) : 0.0f;
@@ -115,6 +128,10 @@ public:
                 node.scale = glm::mix(a, b, alpha);
             }
         }
+
+        if (!loop && animationTime >= anim.duration) {
+            setAnimation(-1);
+        }
     }
 
     void updateSkins()
@@ -132,6 +149,11 @@ public:
 
     void setAnimation(int index, bool resetTime = true)
     {
+        if (index == -1) {
+            activeAnimation = -1;
+            animationTime = 0.0f;
+            return;
+        }
         if (index < 0 || index >= animations.size()) {
             return;
         }

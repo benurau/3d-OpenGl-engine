@@ -27,7 +27,7 @@ struct weapon {
 
     weapon(ModelObject& obj) : weaponObject(obj) {}
 
-    void Update(Camera& camera)
+    void Update(Camera& camera, Renderer renderer)
     {
         glm::vec3 pos = camera.position +camera.Right * 0.15f + camera.Up * -0.15f + camera.Front * 0.25f;
         glm::mat4 rot(1.0f);
@@ -36,6 +36,16 @@ struct weapon {
         rot[2] = glm::vec4(camera.Right, 0.0f);
 
         weaponObject.orientation.modelMatrix = glm::translate(glm::mat4(1.0f), pos) * rot;
+
+        weaponObject.model.updateAnimation(deltaTime, false);
+        weaponObject.model.updateNodeTransforms();
+        weaponObject.orientation.changeView(camera.GetViewMatrix());
+        renderer.drawModel(weaponObject.model, weaponObject.orientation);
+    }
+
+    void fire()
+    {
+        weaponObject.model.setAnimation(0, true);
     }
 };
 
@@ -43,7 +53,7 @@ void errorCallback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
 }
 
-void processKeyboard(GLFWwindow* window, Player& player);
+void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
@@ -190,7 +200,6 @@ int main(int argc, char* argv[]){
 
     mina.model.setAnimation(0);
 
-    gun.model.setAnimation(0);
     weapon gun_weapon{gun};
 
     Enemy basicEnemy{objectCube};
@@ -226,7 +235,6 @@ int main(int argc, char* argv[]){
     sceneManager.Add(floor);
     sceneManager.Add(pack);
     sceneManager.Add(mina);
-    sceneManager.Add(gun);
 
     Light pointLight;
     pointLight.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
@@ -244,12 +252,12 @@ int main(int argc, char* argv[]){
         lastFrame = currentFrame;
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        processKeyboard(window, player);
+        processKeyboard(window, player, gun_weapon);
         player.grounded = false;
    
         glm::vec3 originalMovement = player.movement;
 
-        gun_weapon.Update(camera);
+        gun_weapon.Update(camera, renderer);
 
         sceneManager.Update(deltaTime);
 
@@ -258,6 +266,8 @@ int main(int argc, char* argv[]){
         colMgr.CheckProjectileCollision(player, projectileManager);
 
         sceneManager.Render(renderer, silver, camera);
+
+        
 
         enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
         enemyManager.Render(renderer, silver, camera);
@@ -293,7 +303,7 @@ void mouseCallback(GLFWwindow* window, double xposIn, double yposIn)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void processKeyboard(GLFWwindow* window, Player& player) {
+void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
@@ -317,7 +327,7 @@ void processKeyboard(GLFWwindow* window, Player& player) {
     }
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
-        
+        gun_weapon.fire();
     }
 }
 
