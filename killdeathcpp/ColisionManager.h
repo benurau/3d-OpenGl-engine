@@ -34,7 +34,6 @@ public:
             if (contact.isColliding) {
                 player.grounded |= isGrounded(contact, player.object.colission.worldAABB.min.y);
                 glm::vec3 movement = ResolveColissionPushBack(player.movement, contact);
-                printVec3(movement);
                 player.movement = movement;
             }
         }
@@ -73,7 +72,6 @@ public:
     void CheckSceneCollision(Player& player, SceneManager& scene, const glm::vec3& cameraPos)
     {
         for (MeshObject* m : scene.meshes) {
-            printf("scenecolissionwokrin wiuth meshobjects no qowreries \n");
             resolvePlayerVertexCollision(player, m->colission);
         }
         for (ModelObject* m : scene.models)
