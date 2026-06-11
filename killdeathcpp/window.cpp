@@ -9,7 +9,11 @@
 #include "tinyModel.h"
 #include "Mesh.h"
 #include "Player.h"
-#include "Enemy.h"
+#include "EnemyManager.h"
+#include "ProjectileManager.h"
+#include "SceneManager.h"
+#include "CollisionResponse.h"
+#include "ColisionManager.h"
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -18,14 +22,38 @@ float lastX = C_RES_WIDTH / 2.0;
 float lastY = C_RES_HEIGHT / 2.0;
 Camera camera;
 
+struct weapon {
+    ModelObject& weaponObject;
+
+    weapon(ModelObject& obj) : weaponObject(obj) {}
+
+    void Update(Camera& camera, Renderer renderer)
+    {
+        glm::vec3 pos = camera.position +camera.Right * 0.15f + camera.Up * -0.15f + camera.Front * 0.25f;
+        glm::mat4 rot(1.0f);
+        rot[0] = glm::vec4(camera.Front, 0.0f);
+        rot[1] = glm::vec4(camera.Up, 0.0f);
+        rot[2] = glm::vec4(camera.Right, 0.0f);
+
+        weaponObject.orientation.modelMatrix = glm::translate(glm::mat4(1.0f), pos) * rot;
+
+        weaponObject.model.updateAnimation(deltaTime, false);
+        weaponObject.model.updateNodeTransforms();
+        weaponObject.orientation.changeView(camera.GetViewMatrix());
+        renderer.drawModel(weaponObject.model, weaponObject.orientation);
+    }
+
+    void fire()
+    {
+        weaponObject.model.setAnimation(0, true);
+    }
+};
 
 void errorCallback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
 }
 
-std::vector<Projectile> projectiles;
-
-void processKeyboard(GLFWwindow* window, Player& player);
+void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
@@ -127,13 +155,21 @@ int main(int argc, char* argv[]){
         renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
     }
 
+    tinyModel gungltf = tinyModel("..\\models\\debug_fps_gun\\scene.gltf");
+    gungltf.materialOffset = renderer.materials.size();
+    for (GLTFMaterialGPU mat : gungltf.gpuMaterials) {
+        renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
+    }
+
     DirLight basicLight;
 
     Mesh cube(cubeVertices, cubeIndices);
     VerticeHitBox CubeVertHitbox;
     CubeVertHitbox.buildFromMesh(cubeVertices, cubeIndices);
     ObjectCollision defaultVertCollision;
-    defaultVertCollision.vHitbox = CubeVertHitbox;
+    defaultVertCollision.setVerticeHitBox(CubeVertHitbox);
+    defaultVertCollision.modelSpaceAABB = CubeVertHitbox.localAABB;
+
 
     MeshObject floor{cube, defaultObj, defaultVertCollision};
 
@@ -142,10 +178,12 @@ int main(int argc, char* argv[]){
     ModelObject pack = { packgltf, defaultObj };
     ModelObject mina = { minaglft, defaultObj };
     ModelObject skeleton = { skeletongltf, defaultObj };
+    ModelObject gun = { gungltf, defaultObj };
 
     VerticeHitBox packvhb;
     packvhb.buildFromModel(pack.model.glMeshes, pack.model.nodes);
-    pack.colission.vHitbox = packvhb;
+    pack.colission.setVerticeHitBox(packvhb);
+    pack.colission.modelSpaceAABB = packvhb.localAABB;
     pack.orientation.movePos(glm::vec3(0.0f, -3.0f, 2.0f));
     pack.colission.updateWorldAABBV(pack.orientation.modelMatrix);
     
@@ -162,6 +200,7 @@ int main(int argc, char* argv[]){
 
     mina.model.setAnimation(0);
 
+    weapon gun_weapon{gun};
 
     Enemy basicEnemy{objectCube};
 
@@ -179,22 +218,28 @@ int main(int argc, char* argv[]){
     Projectile basicProjectile{ objectCube, basicProjectileType };
     basicProjectile.object.orientation.changeSize(glm::vec3(-0.9f));
     basicProjectile.object.colission.updateWorldAABB(basicProjectile.object.orientation.modelMatrix);
-    for (int i = 0; i < 100; i++){
-        projectiles.push_back(basicProjectile);
-    }
+
+    ProjectileManager projectileManager;
+    projectileManager.AddProjectile(basicProjectile, 100);
+
+    EnemyManager enemyManager;
+    enemyManager.AddEnemy(basicEnemy);
+    enemyManager.AddEnemy(skeletonEnemy);
 
     mina.orientation.movePos(glm::vec3(3.0f, -4.9f, 2.0f));
     mina.orientation.rotate(glm::vec3(90.0f, 3.5f, 2.0f));
 
-    
+    ColissionManager colMgr;
+
+    SceneManager sceneManager;
+    sceneManager.Add(floor);
+    sceneManager.Add(pack);
+    sceneManager.Add(mina);
 
     Light pointLight;
     pointLight.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
     pointLight.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
     pointLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
-
-    std::vector<MeshObject*> objects;
-    objects.emplace_back(&floor);
 
     floor.orientation.changeSize(glm::vec3(100.0f, 0.0f, 100.0f));
     floor.orientation.movePos(glm::vec3(-1.0f, -5.0f, -1.0f));
@@ -207,80 +252,30 @@ int main(int argc, char* argv[]){
         lastFrame = currentFrame;
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        processKeyboard(window, player); 
-        bool grounded = false;      
-        bool collided = false;
-        glm::vec3 originalMovement = player.movement;    
+        processKeyboard(window, player, gun_weapon);
+        player.grounded = false;
+   
+        glm::vec3 originalMovement = player.movement;
+
+        gun_weapon.Update(camera, renderer);
+
+        sceneManager.Update(deltaTime);
+
+        colMgr.CheckSceneCollision(player, sceneManager, camera.position);
+        colMgr.CheckEnemyCollision(player, enemyManager, camera.position);
+        colMgr.CheckProjectileCollision(player, projectileManager);
+
+        sceneManager.Render(renderer, silver, camera);
+
         
-        pack.orientation.changeView(camera.GetViewMatrix());
-        renderer.drawModel(pack.model, pack.orientation);
-        renderer.drawAABB(pack.colission.worldAABB, pack.orientation.proj * pack.orientation.view, glm::vec3(1.0f, 1.0f, 0.0f), shaders["debugshader"]);
-        if (AABBPointColission(pack.colission.worldAABB, player.object.orientation.position + player.movement)) {
-            ShapeContact contanct = pointVertBoxCollision(pack.colission.vHitbox, player.object.orientation.position + player.movement);
-            if (contanct.isColliding) {
-                player.movement += contanct.normal * contanct.penetrationDepth;
-            }
-        }
-        
-        mina.model.updateAnimation(deltaTime);
-        mina.model.updateNodeTransforms();
-        mina.model.updateSkins();
-        mina.colission.updateModelAABBskins(mina.model);
-        mina.colission.updateWorldAABB(mina.orientation.modelMatrix);
-        mina.colission.updateCapsuleLocs(mina.model, mina.orientation);
-        mina.orientation.changeView(camera.GetViewMatrix());
-        renderer.drawModel(mina.model, mina.orientation);
 
-        if (AABBPointColission(mina.colission.worldAABB, player.object.orientation.position + player.movement)) {
-            for (CapsuleHitBoxWorld& box : mina.colission.capsuleLocs) {
-                ShapeContact cContact = pointInCapsule(camera.position + player.movement, box.worldLoc);
-                if (cContact.isColliding) {
-                    glm::vec3 offsetVec = cContact.penetrationDepth * cContact.normal;
-                    player.movement += offsetVec;
-                    break;
-                }
-            }
-        }
+        enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
+        enemyManager.Render(renderer, silver, camera);
 
-        UpdateEnemy(skeletonEnemy, player.object.orientation.position, deltaTime, projectiles);
-        skeletonEnemy.object.model.updateAnimation(deltaTime);
-        skeletonEnemy.object.model.updateNodeTransforms();
-        skeletonEnemy.object.model.updateSkins();
-        skeletonEnemy.object.colission.updateModelAABBskins(skeletonEnemy.object.model);
-        skeletonEnemy.object.colission.updateWorldAABB(skeletonEnemy.object.orientation.modelMatrix);
-        skeletonEnemy.object.colission.updateCapsuleLocs(skeletonEnemy.object.model, skeletonEnemy.object.orientation);
-        skeletonEnemy.object.orientation.changeView(camera.GetViewMatrix());
-        renderer.drawModel(skeletonEnemy.object.model, skeletonEnemy.object.orientation);
+        projectileManager.Update(deltaTime);
+        projectileManager.Render(renderer, silver, camera);
 
-        basicEnemy.object.orientation.changeView(camera.GetViewMatrix());
-        renderer.draw(basicEnemy.object.mesh, basicEnemy.object.orientation, silver);
-
-        UpdateEnemy(basicEnemy, player.object.orientation.position, deltaTime, projectiles);
-
-        for (Projectile& p : projectiles) {
-            if (p.active) {
-                p.object.orientation.changeView(camera.GetViewMatrix());
-                UpdateProjectile(p, deltaTime);
-                p.object.colission.updateWorldAABBV(basicProjectile.object.orientation.modelMatrix);
-                renderer.draw(p.object.mesh, p.object.orientation, silver);
-                bool tempContact = AABBvsAABB(p.object.colission.worldAABB, player.object.colission.worldAABB);
-                if (tempContact) {
-                    printf("colliding in projehctiles tyiipppiii \n");
-                }
-            }
-        }
-
-        for (MeshObject* object : objects) {           
-            object->orientation.changeView(camera.GetViewMatrix());
-            renderer.draw(object->mesh, object->orientation, silver);
-            ShapeContact tempContact = pointVertBoxCollision(object->colission.vHitbox, player.object.orientation.position + player.movement);
-            if (tempContact.isColliding) {
-                collided = true;
-                player.movement += tempContact.normal * tempContact.penetrationDepth;
-                grounded |= isGrounded(tempContact, player.object.colission.worldAABB.min.y);
-            }
-        }
-        updatePlayer(collided, grounded, player, originalMovement, deltaTime);
+        updatePlayer(player, originalMovement, deltaTime);
         camera.position = player.object.orientation.position + glm::vec3(0, player.cameraHeight, 0);
         glfwPollEvents();
         glfwSwapBuffers(window);
@@ -308,7 +303,7 @@ void mouseCallback(GLFWwindow* window, double xposIn, double yposIn)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void processKeyboard(GLFWwindow* window, Player& player) {
+void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
@@ -329,6 +324,10 @@ void processKeyboard(GLFWwindow* window, Player& player) {
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
         ProcessViewControls(player, DOWN, camera, deltaTime);
+    }
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+    {
+        gun_weapon.fire();
     }
 }
 

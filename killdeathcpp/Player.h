@@ -9,7 +9,7 @@ struct Player {
     glm::vec3 movement{ 0.0f };
     float jumpHeight = 1.0f;
     float verticalVelocity;
-    bool airborne;
+    bool grounded = false;
 };
 
 void ProcessViewControls(Player& player, Camera_Movement direction, Camera& camera, float deltaTime)
@@ -33,35 +33,24 @@ void ProcessViewControls(Player& player, Camera_Movement direction, Camera& came
     {
         player.movement += camera.Right * velocity;
     }
-    if (direction == UP && !player.airborne)
+    if (direction == UP && player.grounded)
     {
         player.verticalVelocity = player.jumpHeight;
     }
-    if (direction == DOWN && player.airborne)
+    if (direction == DOWN && !player.grounded)
     {
         player.verticalVelocity = player.smashSpeed;
     }
 }
 
 void applyGravity(Player& player, float deltaTime) {
-    if (player.airborne) player.verticalVelocity += GRAVITY * deltaTime;
+    if (!player.grounded) player.verticalVelocity += GRAVITY * deltaTime;
     player.movement.y = player.verticalVelocity * deltaTime;
 }
 
-void updatePlayer(bool collided, bool grounded, Player& player, glm::vec3& originalMovement, float deltaTime) {
-    if (collided) {
-        player.object.orientation.position += player.movement;
-    }
-    else {
-        player.object.orientation.position += originalMovement;
-    }
-
-    if (grounded) {
-        player.movement = glm::vec3(0.0f);
-    }
-
+void updatePlayer(Player& player, glm::vec3& originalMovement, float deltaTime) {
+    player.object.orientation.movePos(player.movement);
     player.movement = glm::vec3(0.0f);
-    player.airborne = !grounded;
     applyGravity(player, deltaTime);
     player.object.colission.updateWorldAABB(player.object.orientation.modelMatrix);
 }

@@ -35,8 +35,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="ColisionManager.h" />
+    <ClInclude Include="CollisionResponse.h" />
     <ClInclude Include="Enemy.h" />
-    <ClInclude Include="Entity.h" />
+    <ClInclude Include="EnemyManager.h" />
     <ClInclude Include="Geometry3D.h" />
     <ClInclude Include="HitBox.h" />
     <ClInclude Include="Lights.h" />
@@ -48,8 +50,10 @@
     <ClInclude Include="openglHelpers.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Projectile.h" />
+    <ClInclude Include="ProjectileManager.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="misc.h" />
+    <ClInclude Include="SceneManager.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="soundEngine.h" />
     <ClInclude Include="ObjectParams.h" />
