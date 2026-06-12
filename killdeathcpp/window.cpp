@@ -24,6 +24,7 @@ Camera camera;
 
 struct weapon {
     ModelObject& weaponObject;
+    ProjectileType projectileT;
 
     weapon(ModelObject& obj) : weaponObject(obj) {}
 
@@ -43,9 +44,11 @@ struct weapon {
         renderer.drawModel(weaponObject.model, weaponObject.orientation);
     }
 
-    void fire()
+    void fire(std::vector<Projectile>& projectiles)
     {
         weaponObject.model.setAnimation(0, true);
+        glm::vec3 forward = glm::normalize(glm::vec3(weaponObject.orientation.modelMatrix[2]));
+        SpawnProjectile(weaponObject.orientation.position, forward, projectileT, projectiles);
     }
 };
 
@@ -53,7 +56,7 @@ void errorCallback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
 }
 
-void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon);
+void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon, std::vector<Projectile>& projectiles);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
@@ -218,6 +221,7 @@ int main(int argc, char* argv[]){
     Projectile basicProjectile{ objectCube, basicProjectileType };
     basicProjectile.object.orientation.changeSize(glm::vec3(-0.9f));
     basicProjectile.object.colission.updateWorldAABB(basicProjectile.object.orientation.modelMatrix);
+    gun_weapon.projectileT = basicProjectileType;
 
     ProjectileManager projectileManager;
     projectileManager.AddProjectile(basicProjectile, 100);
@@ -252,7 +256,7 @@ int main(int argc, char* argv[]){
         lastFrame = currentFrame;
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        processKeyboard(window, player, gun_weapon);
+        processKeyboard(window, player, gun_weapon, projectileManager.projectiles);
         player.grounded = false;
    
         glm::vec3 originalMovement = player.movement;
@@ -303,7 +307,7 @@ void mouseCallback(GLFWwindow* window, double xposIn, double yposIn)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon) {
+void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon, std::vector<Projectile>& projectiles) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
@@ -327,7 +331,7 @@ void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon) {
     }
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
-        gun_weapon.fire();
+        gun_weapon.fire(projectiles);
     }
 }
 
