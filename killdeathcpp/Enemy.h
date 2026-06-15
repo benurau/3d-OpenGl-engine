@@ -20,8 +20,7 @@ struct Enemy {
     glm::vec3 velocity;
     float moveSpeed = 1.0f;
 
-    int health;
-    int maxHealth;
+    int health = 100;
     int damage;
 
     float attackRange;
@@ -30,10 +29,10 @@ struct Enemy {
     float stateTimer;
 
     ProjectileType ptype;
-    float shootCooldown = 0;
+    float shootCooldown = 2.0f;
     float shootTimer = 5.0f;
 
-    bool alive;
+    bool alive = true;
 };
 
 struct EnemyModel {
@@ -42,8 +41,7 @@ struct EnemyModel {
     glm::vec3 velocity;
     float moveSpeed = 1.0f;
 
-    int health;
-    int maxHealth;
+    int health = 100;
     int damage;
 
     float attackRange;
@@ -56,10 +54,10 @@ struct EnemyModel {
     float stateTimer;
 
     ProjectileType ptype;
-    float shootCooldown = 0;
+    float shootCooldown = 2.0f;
     float shootTimer = 5.0f;
 
-    bool alive;
+    bool alive = true;
 };
 
 void UpdateEnemy(Enemy& e, glm::vec3 targetPosition, float dt, std::vector<Projectile>& projectiles) {

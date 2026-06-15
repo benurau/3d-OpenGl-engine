@@ -6,6 +6,7 @@ struct ProjectileType {
     Mesh mesh;
     float speed;
     float lifetime;
+    float damage;
 };
 
 struct Projectile
@@ -27,6 +28,7 @@ void SpawnProjectile(glm::vec3& position, glm::vec3& direction, ProjectileType& 
             p.velocity = direction * p.type.speed;
             p.type.lifetime = type.lifetime;
             p.active = true;
+            break;
         }
     }
 }

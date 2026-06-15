@@ -10,6 +10,8 @@ struct Player {
     float jumpHeight = 1.0f;
     float verticalVelocity;
     bool grounded = false;
+
+    float health = 100;
 };
 
 void ProcessViewControls(Player& player, Camera_Movement direction, Camera& camera, float deltaTime)

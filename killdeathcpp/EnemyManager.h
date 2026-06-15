@@ -24,11 +24,15 @@ public:
     {
         for (Enemy& e : enemies)
         {
+            if (!e.alive) continue;
             UpdateEnemy(e, playerPos, dt, projectileManager.projectiles);
+
+            e.object.colission.updateWorldAABB(e.object.orientation.modelMatrix);
         }
 
         for (EnemyModel& e : modelEnemies)
         {
+            if (!e.alive) continue;
             UpdateEnemy(e, playerPos, dt, projectileManager.projectiles);
 
             e.object.model.updateAnimation(dt);
@@ -45,12 +49,14 @@ public:
     {
         for (Enemy& e : enemies)
         {
+            if (!e.alive) continue;
             e.object.orientation.changeView(camera.GetViewMatrix());
             renderer.draw(e.object.mesh, e.object.orientation, material);
         }
 
         for (EnemyModel& e : modelEnemies)
         {
+            if (!e.alive) continue;
             e.object.orientation.changeView(camera.GetViewMatrix());
             renderer.drawModel(e.object.model, e.object.orientation);
         }

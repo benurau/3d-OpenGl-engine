@@ -63,7 +63,7 @@ public:
             if (!p.active) continue;
             if (AABBvsAABB(p.object.colission.worldAABB, player.object.colission.worldAABB))
             {
-                printf("player hit\n");
+                player.health -= p.type.damage;
                 p.active = false;
             }
         }
@@ -78,6 +78,35 @@ public:
         {
             resolvePlayerVertexCollision(player, m->colission);
             resolvePlayerCapsuleColission(player, m->colission, cameraPos);
+        }
+    }
+
+    void CheckProjectileEnemyCollision(ProjectileManager& pManager, EnemyManager& enemyManager)
+    {
+        for (Projectile& p : pManager.projectiles)
+        {
+            if (!p.active) continue;
+            for (Enemy& e : enemyManager.enemies)
+            {
+                if (AABBvsAABB(p.object.colission.worldAABB, e.object.colission.worldAABB))
+                {
+                    printf("swkibidi");
+                    e.health -= p.type.damage;
+                    p.active = false;
+                    break;
+                }
+            }
+            if (!p.active) continue;
+            for (EnemyModel& e : enemyManager.modelEnemies)
+            {
+                if (AABBvsAABB(p.object.colission.worldAABB, e.object.colission.worldAABB))
+                {
+                    printf("swkibidi");
+                    e.health -= p.type.damage;
+                    p.active = false;
+                    break;
+                }
+            }
         }
     }
 
