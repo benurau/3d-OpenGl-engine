@@ -90,7 +90,6 @@ public:
             {
                 if (AABBvsAABB(p.object.colission.worldAABB, e.object.colission.worldAABB))
                 {
-                    printf("swkibidi");
                     e.health -= p.type.damage;
                     p.active = false;
                     break;
@@ -101,7 +100,6 @@ public:
             {
                 if (AABBvsAABB(p.object.colission.worldAABB, e.object.colission.worldAABB))
                 {
-                    printf("swkibidi");
                     e.health -= p.type.damage;
                     p.active = false;
                     break;

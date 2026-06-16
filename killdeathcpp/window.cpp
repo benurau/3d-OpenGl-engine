@@ -14,6 +14,7 @@
 #include "SceneManager.h"
 #include "CollisionResponse.h"
 #include "ColisionManager.h"
+#include "Weapon.h"
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -21,42 +22,6 @@ bool firstMouse = true;
 float lastX = C_RES_WIDTH / 2.0;
 float lastY = C_RES_HEIGHT / 2.0;
 Camera camera;
-
-struct weapon {
-    ModelObject& weaponObject;
-    ProjectileType projectileT;
-    float shootTimer = 0.0f;
-    float shootCooldown = 0.25f;
-
-    weapon(ModelObject& obj) : weaponObject(obj) {}
-
-    void Update(Camera& camera, Renderer renderer)
-    {
-        shootTimer -= deltaTime;
-        glm::vec3 pos = camera.position +camera.Right * 0.15f + camera.Up * -0.15f + camera.Front * 0.25f;
-        glm::mat4 rot(1.0f);
-        rot[0] = glm::vec4(camera.Front, 0.0f);
-        rot[1] = glm::vec4(camera.Up, 0.0f);
-        rot[2] = glm::vec4(camera.Right, 0.0f);
-
-        weaponObject.orientation.modelMatrix = glm::translate(glm::mat4(1.0f), pos) * rot;
-        weaponObject.orientation.position = pos;
-
-        weaponObject.model.updateAnimation(deltaTime, false);
-        weaponObject.model.updateNodeTransforms();
-        weaponObject.orientation.changeView(camera.GetViewMatrix());
-        renderer.drawModel(weaponObject.model, weaponObject.orientation);
-    }
-
-    void fire(std::vector<Projectile>& projectiles)
-    {
-        if (shootTimer > 0.0f) return;
-        weaponObject.model.setAnimation(0, true);
-        glm::vec3 forward = glm::normalize(glm::vec3(weaponObject.orientation.modelMatrix[0]));
-        SpawnProjectile(weaponObject.orientation.position, forward, projectileT, projectiles);
-        shootTimer = shootCooldown;
-    }
-};
 
 void errorCallback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
@@ -267,20 +232,22 @@ int main(int argc, char* argv[]){
    
         glm::vec3 originalMovement = player.movement;
 
-        gun_weapon.Update(camera, renderer);
+        gun_weapon.Update(camera, renderer, deltaTime);
 
         sceneManager.Update(deltaTime);
+
+        enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
+        projectileManager.Update(deltaTime);
 
         colMgr.CheckSceneCollision(player, sceneManager, camera.position);
         colMgr.CheckEnemyCollision(player, enemyManager, camera.position);
         colMgr.CheckProjectileCollision(player, projectileManager);
+        colMgr.CheckProjectileEnemyCollision(projectileManager, enemyManager);
 
         sceneManager.Render(renderer, silver, camera);
 
-        enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
         enemyManager.Render(renderer, silver, camera);
 
-        projectileManager.Update(deltaTime);
         projectileManager.Render(renderer, silver, camera);
 
         updatePlayer(player, originalMovement, deltaTime);
