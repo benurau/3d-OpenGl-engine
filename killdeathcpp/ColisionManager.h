@@ -88,6 +88,7 @@ public:
             if (!p.active) continue;
             for (Enemy& e : enemyManager.enemies)
             {
+                if (e.id == p.ownerId) continue;
                 if (AABBvsAABB(p.object.colission.worldAABB, e.object.colission.worldAABB))
                 {
                     e.health -= p.type.damage;
@@ -98,6 +99,7 @@ public:
             if (!p.active) continue;
             for (EnemyModel& e : enemyManager.modelEnemies)
             {
+                if (e.id == p.ownerId) continue;
                 if (AABBvsAABB(p.object.colission.worldAABB, e.object.colission.worldAABB))
                 {
                     e.health -= p.type.damage;

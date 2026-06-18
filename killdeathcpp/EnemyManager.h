@@ -24,7 +24,6 @@ public:
     {
         for (Enemy& e : enemies)
         {
-            std::cout << e.health<<"enemy healht currently; mrrreeesh \n";
             if (e.health < 0) { continue; }
             UpdateEnemy(e, playerPos, dt, projectileManager.projectiles);
 
@@ -33,7 +32,6 @@ public:
 
         for (EnemyModel& e : modelEnemies)
         {
-            std::cout << e.health << "enemy healht currently modeeel;\n";
             if (e.health < 0) { continue; }
             UpdateEnemy(e, playerPos, dt, projectileManager.projectiles);
 

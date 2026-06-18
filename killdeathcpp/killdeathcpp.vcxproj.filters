@@ -170,6 +170,12 @@
     <ClInclude Include="ColisionManager.h">
       <Filter>Header Files\InteractionhFiles\managerFiles</Filter>
     </ClInclude>
+    <ClInclude Include="GameState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Weapon.h">
+      <Filter>Header Files\InteractionhFiles\gameFiles</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

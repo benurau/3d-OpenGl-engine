@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props')" />
   <ItemGroup Label="ProjectConfigurations">
@@ -39,6 +39,7 @@
     <ClInclude Include="CollisionResponse.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="EnemyManager.h" />
+    <ClInclude Include="GameState.h" />
     <ClInclude Include="Geometry3D.h" />
     <ClInclude Include="HitBox.h" />
     <ClInclude Include="Lights.h" />
@@ -59,6 +60,7 @@
     <ClInclude Include="ObjectParams.h" />
     <ClInclude Include="tinyModel.h" />
     <ClInclude Include="Wav.h" />
+    <ClInclude Include="Weapon.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\shaders\animation.fs" />

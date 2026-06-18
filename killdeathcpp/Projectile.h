@@ -15,9 +15,10 @@ struct Projectile
     ProjectileType type;
     glm::vec3 velocity;
     bool active;
+    int ownerId = -1;
 };
 
-void SpawnProjectile(glm::vec3& position, glm::vec3& direction, ProjectileType& type, std::vector<Projectile>& projectiles) {
+void SpawnProjectile(glm::vec3& position, glm::vec3& direction, ProjectileType& type, std::vector<Projectile>& projectiles, int ownerId = -1) {
     if (projectiles.empty()) printf("projectiles list empty in attack spawnprojectile function undfefined behaviour!!");
     for (Projectile& p : projectiles)
     {
@@ -26,9 +27,10 @@ void SpawnProjectile(glm::vec3& position, glm::vec3& direction, ProjectileType& 
             p.type.mesh = type.mesh;
             p.object.orientation.setPos(position);
             p.object.colission.updateWorldAABB(p.object.orientation.modelMatrix);
-            p.velocity = direction * p.type.speed;
+            p.velocity = direction * type.speed;
             p.type.lifetime = type.lifetime;
             p.active = true;
+            p.ownerId = ownerId;
             break;
         }
     }

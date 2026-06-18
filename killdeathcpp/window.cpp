@@ -15,6 +15,7 @@
 #include "CollisionResponse.h"
 #include "ColisionManager.h"
 #include "Weapon.h"
+#include "GameState.h"
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -178,6 +179,7 @@ int main(int argc, char* argv[]){
 
     Enemy basicEnemy{objectCube};
 
+
     ProjectileType basicProjectileType{ cube, 10.0f , 5.0f, 10.0f};
     basicEnemy.ptype = basicProjectileType;
     basicEnemy.attackRange = 2.0f;
@@ -199,7 +201,7 @@ int main(int argc, char* argv[]){
 
     EnemyManager enemyManager;
     enemyManager.AddEnemy(basicEnemy);
-    enemyManager.AddEnemy(skeletonEnemy);
+    //enemyManager.AddEnemy(skeletonEnemy);
 
     mina.orientation.movePos(glm::vec3(3.0f, -4.9f, 2.0f));
     mina.orientation.rotate(glm::vec3(90.0f, 3.5f, 2.0f));
@@ -219,6 +221,9 @@ int main(int argc, char* argv[]){
     floor.orientation.changeSize(glm::vec3(100.0f, 0.0f, 100.0f));
     floor.orientation.movePos(glm::vec3(-1.0f, -5.0f, -1.0f));
     floor.colission.updateWorldAABBV(floor.orientation.modelMatrix);
+
+    GameState gameState;
+    gameState.Store(player, enemyManager);
 
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
@@ -243,6 +248,9 @@ int main(int argc, char* argv[]){
         colMgr.CheckEnemyCollision(player, enemyManager, camera.position);
         colMgr.CheckProjectileCollision(player, projectileManager);
         colMgr.CheckProjectileEnemyCollision(projectileManager, enemyManager);
+
+        if (player.health <= 0.0f)
+            gameState.Restore(player, enemyManager);
 
         sceneManager.Render(renderer, silver, camera);
 
