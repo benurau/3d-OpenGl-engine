@@ -15,9 +15,8 @@ struct Character {
 class TextRenderer {
 public:
     TextRenderer(const std::string& fontPath, unsigned int fontSize = 48);
-    ~TextRenderer();
-
     void RenderText(const std::string& text, float x, float y, float scale, const glm::vec3& color);
+    glm::vec2 MeasureText(const std::string& text, float scale);
 
 private:
     std::map<char, Character> characters;

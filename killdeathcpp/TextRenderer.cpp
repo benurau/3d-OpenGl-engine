@@ -69,12 +69,6 @@ TextRenderer::TextRenderer(const std::string& fontPath, unsigned int fontSize)
     std::cout << "[TextRenderer] Ready: " << fontPath << " (" << characters.size() << " glyphs, atlas " << atlasWidth << "x" << atlasHeight << ")" << std::endl;
 }
 
-TextRenderer::~TextRenderer() {
-    if (atlasTexture) glDeleteTextures(1, &atlasTexture);
-    if (vao) glDeleteVertexArrays(1, &vao);
-    if (vbo) glDeleteBuffers(1, &vbo);
-}
-
 void TextRenderer::RenderText(const std::string& text, float x, float y, float scale, const glm::vec3& color) {
     if (characters.empty() || atlasTexture == 0) return;
 
@@ -88,6 +82,9 @@ void TextRenderer::RenderText(const std::string& text, float x, float y, float s
     shader.setMat4("projection", projection);
 
     glBindVertexArray(vao);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     for (char c : text) {
         if (c == '\n') {
@@ -122,4 +119,19 @@ void TextRenderer::RenderText(const std::string& text, float x, float y, float s
     }
 
     glBindVertexArray(0);
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+}
+
+glm::vec2 TextRenderer::MeasureText(const std::string& text, float scale) {
+    float width = 0.0f;
+    float height = 0.0f;
+    for (char c : text) {
+        auto it = characters.find(c);
+        if (it == characters.end()) continue;
+        width += it->second.ax * scale;
+        float ch = (it->second.bh + it->second.bt) * scale;
+        if (ch > height) height = ch;
+    }
+    return glm::vec2(width, height);
 }

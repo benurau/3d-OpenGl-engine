@@ -63,6 +63,14 @@
     <ClInclude Include="Wav.h" />
     <ClInclude Include="Weapon.h" />
     <ClInclude Include="TextRenderer.h" />
+    <ClInclude Include="UIElement.h" />
+    <ClInclude Include="TextLabel.h" />
+    <ClInclude Include="Button.h" />
+    <ClInclude Include="UIScreen.h" />
+    <ClInclude Include="MainMenuScreen.h" />
+    <ClInclude Include="OptionsScreen.h" />
+    <ClInclude Include="PauseScreen.h" />
+    <ClInclude Include="UIManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\shaders\animation.fs" />
@@ -88,6 +96,8 @@
     <None Include="..\shaders\quad3d.vs" />
     <None Include="..\shaders\text.fs" />
     <None Include="..\shaders\text.vs" />
+    <None Include="..\shaders\ui.fs" />
+    <None Include="..\shaders\ui.vs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

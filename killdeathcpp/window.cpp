@@ -1,4 +1,5 @@
 #include <iostream>
+#include <functional>
 #include "renderer.h"
 #include "soundEngine.h"
 #include "Camera.h"
@@ -17,11 +18,16 @@
 #include "Weapon.h"
 #include "GameState.h"
 #include "TextRenderer.h"
+#include "UIManager.h"
+#include "MainMenuScreen.h"
+#include "OptionsScreen.h"
+#include "PauseScreen.h"
 
-enum Game {
+enum class Game {
     START_SCREEN,
-    DEATH_SCREEN,
-    GAME_SCREEN
+    GAME_SCREEN,
+    PAUSE_SCREEN,
+    DEATH_SCREEN
 };
 
 float deltaTime = 0.0f;
@@ -29,6 +35,10 @@ float lastFrame = 0.0f;
 bool firstMouse = true;
 float lastX = C_RES_WIDTH / 2.0;
 float lastY = C_RES_HEIGHT / 2.0;
+float mouseX = 0.0f, mouseY = 0.0f;
+bool leftMousePressed = false;
+bool escapePressed = false;
+Game game = Game::START_SCREEN;
 Camera camera;
 
 void errorCallback(int error, const char* description) {
@@ -36,6 +46,7 @@ void errorCallback(int error, const char* description) {
 }
 
 void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon, std::vector<Projectile>& projectiles);
+void processMouse(GLFWwindow* window, UIManager& uiManager, weapon& gun_weapon, std::vector<Projectile>& projectiles);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
@@ -62,7 +73,7 @@ int main(int argc, char* argv[]){
         return -1;
     }
     glfwSetCursorPosCallback(window, mouseCallback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     Renderer renderer(window);
     TextRenderer textRenderer("C:/Windows/Fonts/arial.ttf");
 
@@ -82,8 +93,6 @@ int main(int argc, char* argv[]){
     for (size_t i = 0; i < quadPos.size(); ++i) {
         quadVertices.emplace_back(quadPos[i], quadNormals[i], quadTexCoords[i]);
     }
-
-    Game game = GAME_SCREEN;
 
     GLuint monster = create2DBitMapTexture("..\\assets\\monster1.bmp");
     GLuint background = create2DBitMapTexture("..\\assets\\background.bmp");
@@ -232,6 +241,32 @@ int main(int argc, char* argv[]){
     floor.orientation.movePos(glm::vec3(-1.0f, -5.0f, -1.0f));
     floor.colission.updateWorldAABBV(floor.orientation.modelMatrix);
 
+    UIManager uiManager;
+
+    std::function<void()> showMainMenu, showPause;
+
+    showMainMenu = [&]() {
+        game = Game::START_SCREEN;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        uiManager.SetScreen(new MainMenuScreen(
+            [&]() { game = Game::GAME_SCREEN; glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); },
+            [&]() { uiManager.SetScreen(new OptionsScreen([&]() { showMainMenu(); })); },
+            [&]() { glfwSetWindowShouldClose(window, true); }
+        ));
+    };
+
+    showPause = [&]() {
+        game = Game::PAUSE_SCREEN;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        uiManager.SetScreen(new PauseScreen(
+            [&]() { game = Game::GAME_SCREEN; glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); },
+            [&]() { uiManager.SetScreen(new OptionsScreen([&]() { showPause(); })); },
+            [&]() { showMainMenu(); }
+        ));
+    };
+
+    showMainMenu();
+
     GameState gameState;
     gameState.Store(player, enemyManager);
 
@@ -244,10 +279,17 @@ int main(int argc, char* argv[]){
         lastFrame = currentFrame;
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        processMouse(window, uiManager, gun_weapon, projectileManager.projectiles);
         processKeyboard(window, player, gun_weapon, projectileManager.projectiles);
         player.grounded = false;
 
-        if (game == GAME_SCREEN) {
+        switch (game) {
+        case Game::GAME_SCREEN: {
+            bool escDown = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
+            if (escDown && !escapePressed) showPause();
+            escapePressed = escDown;
+
             glm::vec3 originalMovement = player.movement;
 
             gun_weapon.Update(camera, renderer, deltaTime);
@@ -264,7 +306,8 @@ int main(int argc, char* argv[]){
 
             if (player.health <= 0.0f) {
                 deathTimer = 5.0f;
-                game = DEATH_SCREEN;
+                game = Game::DEATH_SCREEN;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
                 gameState.Restore(player, enemyManager);
             }
 
@@ -277,32 +320,26 @@ int main(int argc, char* argv[]){
             updatePlayer(player, originalMovement, deltaTime);
             camera.position = player.object.orientation.position + glm::vec3(0, player.cameraHeight, 0);
 
-            glDisable(GL_DEPTH_TEST);
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             textRenderer.RenderText("FPS: " + std::to_string(static_cast<int>(1.0f / deltaTime)), 10.0f, 30.0f, 1.0f, glm::vec3(0.0f, 1.0f, 0.0f));
             textRenderer.RenderText("HP: " + std::to_string(player.health), 20.0f, 60.0f, 1.0f, glm::vec3(1.0f, 0.2f, 0.2f));
-            glDisable(GL_BLEND);
-            glEnable(GL_DEPTH_TEST);
+            break;
         }
 
-        else if(game == DEATH_SCREEN){
-            if (deathTimer <= 0) {
-                game = GAME_SCREEN;
-            }
-            glDisable(GL_DEPTH_TEST);
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        case Game::START_SCREEN:
+        case Game::PAUSE_SCREEN:
+            uiManager.Update(deltaTime);
+            uiManager.Render(textRenderer);
+            break;
+
+        case Game::DEATH_SCREEN:
+            if (deathTimer <= 0) showMainMenu();
             textRenderer.RenderText("YOU DIED PUSSY", 400.0f, 400.0f, 1.5f, glm::vec3(0.0f, 1.0f, 0.0f));
-            glDisable(GL_BLEND);
-            glEnable(GL_DEPTH_TEST);
             deathTimer -= deltaTime;
+            break;
         }
-   
-        
 
         glfwPollEvents();
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(window);         
     }
     //sEngine.audioCleanup(huh, aDevice);
     glfwTerminate();
@@ -314,23 +351,41 @@ void mouseCallback(GLFWwindow* window, double xposIn, double yposIn)
 {
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
-    if (firstMouse)
+    mouseX = xpos;
+    mouseY = ypos;
+    if (game == Game::GAME_SCREEN)
     {
+        if (firstMouse)
+        {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos;
         lastX = xpos;
         lastY = ypos;
-        firstMouse = false;
+        camera.ProcessMouseMovement(xoffset, yoffset);
     }
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
-    lastX = xpos;
-    lastY = ypos;
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    else
+    {
+        firstMouse = true;
+    }
+}
+
+void processMouse(GLFWwindow* window, UIManager& uiManager, weapon& gun_weapon, std::vector<Projectile>& projectiles) {
+    bool leftClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+    if (leftClick && !leftMousePressed) {
+        uiManager.OnMouseClick(mouseX, mouseY);
+    }
+    leftMousePressed = leftClick;
+    uiManager.OnMouseMove(mouseX, mouseY);
+    if (game == Game::GAME_SCREEN && leftClick) {
+        gun_weapon.fire(projectiles);
+    }
 }
 
 void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon, std::vector<Projectile>& projectiles) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, true);
-    }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         ProcessViewControls(player, FORWARD, camera, deltaTime);
     }
@@ -349,9 +404,4 @@ void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon, std
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
         ProcessViewControls(player, DOWN, camera, deltaTime);
     }
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-    {
-        gun_weapon.fire(projectiles);
-    }
 }
-
