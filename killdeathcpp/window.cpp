@@ -16,6 +16,13 @@
 #include "ColisionManager.h"
 #include "Weapon.h"
 #include "GameState.h"
+#include "TextRenderer.h"
+
+enum Game {
+    START_SCREEN,
+    DEATH_SCREEN,
+    GAME_SCREEN
+};
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -57,6 +64,7 @@ int main(int argc, char* argv[]){
     glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     Renderer renderer(window);
+    TextRenderer textRenderer("C:/Windows/Fonts/arial.ttf");
 
     //soundEngine sEngine;
     //sEngine.initialize();
@@ -74,6 +82,8 @@ int main(int argc, char* argv[]){
     for (size_t i = 0; i < quadPos.size(); ++i) {
         quadVertices.emplace_back(quadPos[i], quadNormals[i], quadTexCoords[i]);
     }
+
+    Game game = GAME_SCREEN;
 
     GLuint monster = create2DBitMapTexture("..\\assets\\monster1.bmp");
     GLuint background = create2DBitMapTexture("..\\assets\\background.bmp");
@@ -225,6 +235,8 @@ int main(int argc, char* argv[]){
     GameState gameState;
     gameState.Store(player, enemyManager);
 
+    float deathTimer = 5.0f;
+
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -234,32 +246,61 @@ int main(int argc, char* argv[]){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         processKeyboard(window, player, gun_weapon, projectileManager.projectiles);
         player.grounded = false;
+
+        if (game == GAME_SCREEN) {
+            glm::vec3 originalMovement = player.movement;
+
+            gun_weapon.Update(camera, renderer, deltaTime);
+
+            sceneManager.Update(deltaTime);
+
+            enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
+            projectileManager.Update(deltaTime);
+
+            colMgr.CheckSceneCollision(player, sceneManager, camera.position);
+            colMgr.CheckEnemyCollision(player, enemyManager, camera.position);
+            colMgr.CheckProjectileCollision(player, projectileManager);
+            colMgr.CheckProjectileEnemyCollision(projectileManager, enemyManager);
+
+            if (player.health <= 0.0f) {
+                deathTimer = 5.0f;
+                game = DEATH_SCREEN;
+                gameState.Restore(player, enemyManager);
+            }
+
+            sceneManager.Render(renderer, silver, camera);
+
+            enemyManager.Render(renderer, silver, camera);
+
+            projectileManager.Render(renderer, silver, camera);
+
+            updatePlayer(player, originalMovement, deltaTime);
+            camera.position = player.object.orientation.position + glm::vec3(0, player.cameraHeight, 0);
+
+            glDisable(GL_DEPTH_TEST);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            textRenderer.RenderText("FPS: " + std::to_string(static_cast<int>(1.0f / deltaTime)), 10.0f, 30.0f, 1.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+            textRenderer.RenderText("HP: " + std::to_string(player.health), 20.0f, 60.0f, 1.0f, glm::vec3(1.0f, 0.2f, 0.2f));
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+        }
+
+        else if(game == DEATH_SCREEN){
+            if (deathTimer <= 0) {
+                game = GAME_SCREEN;
+            }
+            glDisable(GL_DEPTH_TEST);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            textRenderer.RenderText("YOU DIED PUSSY", 400.0f, 400.0f, 1.5f, glm::vec3(0.0f, 1.0f, 0.0f));
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+            deathTimer -= deltaTime;
+        }
    
-        glm::vec3 originalMovement = player.movement;
+        
 
-        gun_weapon.Update(camera, renderer, deltaTime);
-
-        sceneManager.Update(deltaTime);
-
-        enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
-        projectileManager.Update(deltaTime);
-
-        colMgr.CheckSceneCollision(player, sceneManager, camera.position);
-        colMgr.CheckEnemyCollision(player, enemyManager, camera.position);
-        colMgr.CheckProjectileCollision(player, projectileManager);
-        colMgr.CheckProjectileEnemyCollision(projectileManager, enemyManager);
-
-        if (player.health <= 0.0f)
-            gameState.Restore(player, enemyManager);
-
-        sceneManager.Render(renderer, silver, camera);
-
-        enemyManager.Render(renderer, silver, camera);
-
-        projectileManager.Render(renderer, silver, camera);
-
-        updatePlayer(player, originalMovement, deltaTime);
-        camera.position = player.object.orientation.position + glm::vec3(0, player.cameraHeight, 0);
         glfwPollEvents();
         glfwSwapBuffers(window);
     }

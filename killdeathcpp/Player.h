@@ -8,10 +8,11 @@ struct Player {
     float smashSpeed = -4.0f;
     glm::vec3 movement{ 0.0f };
     float jumpHeight = 1.0f;
-    float verticalVelocity;
+    float verticalVelocity = 0.0;
     bool grounded = false;
 
     float health = 100;
+    bool alive = true;
 };
 
 void ProcessViewControls(Player& player, Camera_Movement direction, Camera& camera, float deltaTime)

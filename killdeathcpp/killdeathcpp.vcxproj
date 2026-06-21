@@ -32,6 +32,7 @@
     <ClCompile Include="thirdparty_impl.cpp" />
     <ClCompile Include="Wav.cpp" />
     <ClCompile Include="window.cpp" />
+    <ClCompile Include="TextRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -61,6 +62,7 @@
     <ClInclude Include="tinyModel.h" />
     <ClInclude Include="Wav.h" />
     <ClInclude Include="Weapon.h" />
+    <ClInclude Include="TextRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\shaders\animation.fs" />
@@ -84,6 +86,8 @@
     <None Include="..\shaders\multiLight.fs" />
     <None Include="..\shaders\quad3d.fs" />
     <None Include="..\shaders\quad3d.vs" />
+    <None Include="..\shaders\text.fs" />
+    <None Include="..\shaders\text.vs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
