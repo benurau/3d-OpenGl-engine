@@ -155,6 +155,12 @@ int main(int argc, char* argv[]){
         renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
     }
 
+    tinyModel swordgltf = tinyModel("..\\models\\debug_sword\\scene.gltf");
+    swordgltf.materialOffset = renderer.materials.size();
+    for (GLTFMaterialGPU mat : swordgltf.gpuMaterials) {
+        renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
+    }
+
     DirLight basicLight;
 
     Mesh cube(cubeVertices, cubeIndices);
@@ -173,6 +179,7 @@ int main(int argc, char* argv[]){
     ModelObject mina = { minaglft, defaultObj };
     ModelObject skeleton = { skeletongltf, defaultObj };
     ModelObject gun = { gungltf, defaultObj };
+    ModelObject sword = { swordgltf, defaultObj };
 
     VerticeHitBox packvhb;
     packvhb.buildFromModel(pack.model.glMeshes, pack.model.nodes);
@@ -181,7 +188,6 @@ int main(int argc, char* argv[]){
     pack.orientation.movePos(glm::vec3(0.0f, -3.0f, 2.0f));
     pack.colission.updateWorldAABBV(pack.orientation.modelMatrix);
     
-
     Player player;
     MeshObject playerObject = objectCube;
     playerObject.orientation.changeSize(glm::vec3(0.5f, 1.0f, 0.5f));
@@ -195,6 +201,7 @@ int main(int argc, char* argv[]){
     mina.model.setAnimation(0);
 
     weapon gun_weapon{gun};
+    weapon sword_weapon{ sword };
 
     Enemy basicEnemy{objectCube};
 
@@ -271,6 +278,7 @@ int main(int argc, char* argv[]){
     gameState.Store(player, enemyManager);
 
     float deathTimer = 5.0f;
+    int activeWeapon = 0;
 
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
@@ -280,8 +288,8 @@ int main(int argc, char* argv[]){
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        processMouse(window, uiManager, gun_weapon, projectileManager.projectiles);
-        processKeyboard(window, player, gun_weapon, projectileManager.projectiles);
+        processMouse(window, uiManager, sword_weapon, projectileManager.projectiles);
+        processKeyboard(window, player, sword_weapon, projectileManager.projectiles);
         player.grounded = false;
 
         switch (game) {
@@ -292,7 +300,7 @@ int main(int argc, char* argv[]){
 
             glm::vec3 originalMovement = player.movement;
 
-            gun_weapon.Update(camera, renderer, deltaTime);
+            sword_weapon.Update(camera, renderer, deltaTime);
 
             sceneManager.Update(deltaTime);
 
@@ -320,7 +328,6 @@ int main(int argc, char* argv[]){
             updatePlayer(player, originalMovement, deltaTime);
             camera.position = player.object.orientation.position + glm::vec3(0, player.cameraHeight, 0);
 
-            textRenderer.RenderText("FPS: " + std::to_string(static_cast<int>(1.0f / deltaTime)), 10.0f, 30.0f, 1.0f, glm::vec3(0.0f, 1.0f, 0.0f));
             textRenderer.RenderText("HP: " + std::to_string(player.health), 20.0f, 60.0f, 1.0f, glm::vec3(1.0f, 0.2f, 0.2f));
             break;
         }

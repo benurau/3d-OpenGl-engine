@@ -60,7 +60,7 @@ public:
     {
         for (Projectile& p : pManager.projectiles)
         {
-            if (!p.active) continue;
+            if (!p.active && p.ownerId == -1) continue;
             if (AABBvsAABB(p.object.colission.worldAABB, player.object.colission.worldAABB))
             {
                 player.health -= p.type.damage;

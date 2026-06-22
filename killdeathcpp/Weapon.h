@@ -9,6 +9,9 @@ struct weapon {
     float shootTimer = 0.0f;
     float shootCooldown = 0.25f;
 
+    static inline int nextId = 0;
+    int id = nextId++;
+
     weapon(ModelObject& obj) : weaponObject(obj) {}
 
     void Update(Camera& camera, Renderer& renderer, float deltaTime)
