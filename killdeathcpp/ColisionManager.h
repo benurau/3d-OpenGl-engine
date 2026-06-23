@@ -5,6 +5,7 @@
 #include "Player.h"
 #include "SceneManager.h"
 #include "CollisionResponse.h"
+#include "Weapon.h"
 #include <cstdio>
 
 struct Collider {
@@ -60,7 +61,8 @@ public:
     {
         for (Projectile& p : pManager.projectiles)
         {
-            if (!p.active && p.ownerId == -1) continue;
+            if (!p.active) continue;
+            if (p.ownerId == -1) continue;
             if (AABBvsAABB(p.object.colission.worldAABB, player.object.colission.worldAABB))
             {
                 player.health -= p.type.damage;
@@ -106,6 +108,41 @@ public:
                     p.active = false;
                     break;
                 }
+            }
+        }
+    }
+
+    void CheckMeleeSweep(EnemyManager& enemyManager, weapon& w)
+    {
+        if (!w.updateSweepCapsule()) return;
+        ObjectCollision& col = w.weaponObject.colission;
+        if (!col.hasSweepCapsule) return;
+        const CapsuleWorldLoc& capsule = col.getSweepCapsule();
+
+        for (Enemy& e : enemyManager.enemies)
+        {
+            if (!e.alive || e.health < 0 || e.id == w.id) continue;
+            bool alreadyHit = false;
+            for (int id : w.hitEnemyIds) if (id == e.id) { alreadyHit = true; break; }
+            if (alreadyHit) continue;
+            ShapeContact contact = capsuleVsAABB(capsule, e.object.colission.worldAABB);
+            if (contact.isColliding) {
+                e.health -= w.meleeDamage;
+                e.velocity += contact.normal * contact.penetrationDepth * 5.0f;
+                w.hitEnemyIds.push_back(e.id);
+            }
+        }
+        for (EnemyModel& e : enemyManager.modelEnemies)
+        {
+            if (!e.alive || e.health < 0 || e.id == w.id) continue;
+            bool alreadyHit = false;
+            for (int id : w.hitEnemyIds) if (id == e.id) { alreadyHit = true; break; }
+            if (alreadyHit) continue;
+            ShapeContact contact = capsuleVsAABB(capsule, e.object.colission.worldAABB);
+            if (contact.isColliding) {
+                e.health -= w.meleeDamage;
+                e.velocity += contact.normal * contact.penetrationDepth * 5.0f;
+                w.hitEnemyIds.push_back(e.id);
             }
         }
     }

@@ -80,7 +80,23 @@ struct ObjectCollision {
         hasCapsules = !capsuleLocs.empty();
     }
 
+    void setSweepCapsule(const CapsuleWorldLoc& cap) {
+        sweepCapsule = cap;
+        hasSweepCapsule = true;
+    }
+
+    const CapsuleWorldLoc& getSweepCapsule() const {
+        return sweepCapsule;
+    }
+
+    void clearSweepCapsule() {
+        hasSweepCapsule = false;
+    }
+
+    bool hasSweepCapsule = false;
+
 private:
+    CapsuleWorldLoc sweepCapsule;
     std::vector<CapsuleHitBoxWorld> capsuleLocs;
     VerticeHitBox vHitbox;
 };
@@ -285,6 +301,52 @@ inline ShapeContact pointInCapsule(const glm::vec3& point, CapsuleWorldLoc capsu
     return contact;
 }
 
+inline ShapeContact capsuleVsAABB(const CapsuleWorldLoc& capsule, const AABB& box) {
+    ShapeContact contact{};
+    contact.isColliding = false;
+
+    glm::vec3 ab = capsule.p1 - capsule.p0;
+    float abLenSq = glm::dot(ab, ab);
+    glm::vec3 center = (box.min + box.max) * 0.5f;
+
+    glm::vec3 ac = center - capsule.p0;
+    float t = 0.0f;
+    if (abLenSq > 0.0f) t = glm::clamp(glm::dot(ac, ab) / abLenSq, 0.0f, 1.0f);
+    glm::vec3 closestOnSegment = capsule.p0 + ab * t;
+    glm::vec3 closestOnAABB = glm::clamp(closestOnSegment, box.min, box.max);
+
+    glm::vec3 ac2 = closestOnAABB - capsule.p0;
+    if (abLenSq > 0.0f) t = glm::clamp(glm::dot(ac2, ab) / abLenSq, 0.0f, 1.0f);
+    closestOnSegment = capsule.p0 + ab * t;
+    closestOnAABB = glm::clamp(closestOnSegment, box.min, box.max);
+
+    glm::vec3 delta = closestOnSegment - closestOnAABB;
+    float dist = glm::length(delta);
+
+    if (dist < capsule.radius) {
+        contact.isColliding = true;
+        contact.closestPoint = closestOnAABB;
+        contact.penetrationDepth = capsule.radius - dist;
+
+        if (dist > 0.000001f) {
+            contact.normal = delta / dist;
+        } else {
+            glm::vec3 localPoint = closestOnSegment - center;
+            glm::vec3 halfExtents = (box.max - box.min) * 0.5f;
+            glm::vec3 distToEdge = halfExtents - glm::abs(localPoint);
+            float minDist = glm::min(distToEdge.x, glm::min(distToEdge.y, distToEdge.z));
+            if (distToEdge.x == minDist)
+                contact.normal = glm::vec3(localPoint.x > 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f);
+            else if (distToEdge.y == minDist)
+                contact.normal = glm::vec3(0.0f, localPoint.y > 0.0f ? 1.0f : -1.0f, 0.0f);
+            else
+                contact.normal = glm::vec3(0.0f, 0.0f, localPoint.z > 0.0f ? 1.0f : -1.0f);
+        }
+    }
+
+    return contact;
+}
+
 inline std::vector<glm::vec3> computeVertexNormals( const std::vector<glm::vec3>& positions, const std::vector<unsigned int>& indices) {
     std::vector<glm::vec3> normals(positions.size(), glm::vec3(0.0f));
 
@@ -307,6 +369,31 @@ inline std::vector<glm::vec3> computeVertexNormals( const std::vector<glm::vec3>
         n = glm::normalize(n);
     }
     return normals;
+}
+
+inline bool segmentVsAABB(const glm::vec3& start, const glm::vec3& end, const AABB& aabb) {
+    glm::vec3 center = (aabb.min + aabb.max) * 0.5f;
+    glm::vec3 half = (aabb.max - aabb.min) * 0.5f;
+    glm::vec3 segStart = start - center;
+    glm::vec3 segEnd = end - center;
+    glm::vec3 dir = segEnd - segStart;
+    float tMin = 0.0f, tMax = 1.0f;
+    for (int i = 0; i < 3; i++) {
+        float d = dir[i];
+        float s = segStart[i];
+        float h = half[i];
+        if (fabs(d) < 1e-7f) {
+            if (s < -h || s > h) return false;
+        } else {
+            float t1 = (-h - s) / d;
+            float t2 = (h - s) / d;
+            if (t1 > t2) std::swap(t1, t2);
+            tMin = std::max(tMin, t1);
+            tMax = std::min(tMax, t2);
+            if (tMin > tMax) return false;
+        }
+    }
+    return true;
 }
 
 inline bool isGrounded(ShapeContact& contact, float objectHeight) {

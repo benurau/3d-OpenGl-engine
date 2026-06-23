@@ -4,9 +4,9 @@
 
 struct ProjectileType {
     Mesh mesh;
-    float speed;
-    float lifetime;
-    float damage;
+    float speed = 1.0f;
+    float lifetime = 3.0f;
+    float damage = 10;
 };
 
 struct Projectile

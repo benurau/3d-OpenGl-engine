@@ -83,13 +83,11 @@ void UpdateEnemy(Enemy& e, glm::vec3 targetPosition, float dt, std::vector<Proje
         e.shootTimer -= dt;
         glm::vec3 dir = CalculateDirection(e.object.orientation.position, targetPosition);
         float dist = glm::length(targetPosition - e.object.orientation.position);
-        printf("inside enemy mesh attack state update enemy first \n");
         if (dist > e.attackRange) {
             e.state = CHASE;
         }
         else if (e.shootTimer <= 0.0f)
         {
-            printf("inside enemy mesh attack state update enemy spawnprojectile activated \n");
             SpawnProjectile(e.object.orientation.position, dir, e.ptype, projectiles, e.id);
             e.shootTimer = e.shootCooldown;
         }

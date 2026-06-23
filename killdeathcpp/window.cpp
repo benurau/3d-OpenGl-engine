@@ -37,6 +37,7 @@ float lastX = C_RES_WIDTH / 2.0;
 float lastY = C_RES_HEIGHT / 2.0;
 float mouseX = 0.0f, mouseY = 0.0f;
 bool leftMousePressed = false;
+bool rightMousePressed = false;
 bool escapePressed = false;
 Game game = Game::START_SCREEN;
 Camera camera;
@@ -302,6 +303,8 @@ int main(int argc, char* argv[]){
 
             sword_weapon.Update(camera, renderer, deltaTime);
 
+            colMgr.CheckMeleeSweep(enemyManager, sword_weapon);
+
             sceneManager.Update(deltaTime);
 
             enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
@@ -390,6 +393,11 @@ void processMouse(GLFWwindow* window, UIManager& uiManager, weapon& gun_weapon, 
     if (game == Game::GAME_SCREEN && leftClick) {
         gun_weapon.fire(projectiles);
     }
+    bool rightClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+    if (rightClick && !rightMousePressed && game == Game::GAME_SCREEN) {
+        gun_weapon.startMelee();
+    }
+    rightMousePressed = rightClick;
 }
 
 void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon, std::vector<Projectile>& projectiles) {
