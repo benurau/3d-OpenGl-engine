@@ -13,6 +13,9 @@ struct weapon {
     static inline int nextId = 0;
     int id = nextId++;
 
+    enum class WeaponType { Melee, Range, Both };
+    WeaponType type = WeaponType::Range;
+
     enum class MeleeState { Idle, Swinging, Cooldown };
     MeleeState meleeState = MeleeState::Idle;
     float swingTimer = 0.0f;

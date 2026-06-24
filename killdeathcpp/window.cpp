@@ -16,6 +16,7 @@
 #include "CollisionResponse.h"
 #include "ColisionManager.h"
 #include "Weapon.h"
+#include "WeaponManager.h"
 #include "GameState.h"
 #include "TextRenderer.h"
 #include "UIManager.h"
@@ -46,8 +47,8 @@ void errorCallback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
 }
 
-void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon, std::vector<Projectile>& projectiles);
-void processMouse(GLFWwindow* window, UIManager& uiManager, weapon& gun_weapon, std::vector<Projectile>& projectiles);
+void processKeyboard(GLFWwindow* window, Player& player, WeaponManager& weaponManager);
+void processMouse(GLFWwindow* window, UIManager& uiManager, WeaponManager& weaponManager, std::vector<Projectile>& projectiles);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
@@ -162,6 +163,12 @@ int main(int argc, char* argv[]){
         renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
     }
 
+    tinyModel meele_enemygltf = tinyModel("..\\models\\simple_meele_enemy\\scene.gltf");
+    meele_enemygltf.materialOffset = renderer.materials.size();
+    for (GLTFMaterialGPU mat : meele_enemygltf.gpuMaterials) {
+        renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
+    }
+
     DirLight basicLight;
 
     Mesh cube(cubeVertices, cubeIndices);
@@ -181,6 +188,7 @@ int main(int argc, char* argv[]){
     ModelObject skeleton = { skeletongltf, defaultObj };
     ModelObject gun = { gungltf, defaultObj };
     ModelObject sword = { swordgltf, defaultObj };
+    ModelObject meeleEnemyObject = { meele_enemygltf, defaultObj };
 
     VerticeHitBox packvhb;
     packvhb.buildFromModel(pack.model.glMeshes, pack.model.nodes);
@@ -202,7 +210,13 @@ int main(int argc, char* argv[]){
     mina.model.setAnimation(0);
 
     weapon gun_weapon{gun};
+    gun_weapon.type = weapon::WeaponType::Range;
     weapon sword_weapon{ sword };
+    sword_weapon.type = weapon::WeaponType::Melee;
+
+    WeaponManager weaponManager;
+    weaponManager.addWeapon(gun_weapon);
+    weaponManager.addWeapon(sword_weapon);
 
     Enemy basicEnemy{objectCube};
 
@@ -218,6 +232,12 @@ int main(int argc, char* argv[]){
     skeletonEnemy.attackAnimation = 0;
     skeletonEnemy.chaseAnimation = -1;
 
+    EnemyModel meeleEnemy{ meeleEnemyObject };
+    meeleEnemy.attackRange = 0.5f;
+    skeletonEnemy.state = CHASE;
+    skeletonEnemy.attackAnimation = 0;
+    skeletonEnemy.chaseAnimation = -1;
+
     Projectile basicProjectile{ objectCube, basicProjectileType };
     basicProjectile.object.orientation.changeSize(glm::vec3(-0.9f));
     basicProjectile.object.colission.updateWorldAABB(basicProjectile.object.orientation.modelMatrix);
@@ -228,6 +248,8 @@ int main(int argc, char* argv[]){
 
     EnemyManager enemyManager;
     enemyManager.AddEnemy(basicEnemy);
+    enemyManager.AddEnemy(meeleEnemy);
+
     //enemyManager.AddEnemy(skeletonEnemy);
 
     mina.orientation.movePos(glm::vec3(3.0f, -4.9f, 2.0f));
@@ -279,7 +301,6 @@ int main(int argc, char* argv[]){
     gameState.Store(player, enemyManager);
 
     float deathTimer = 5.0f;
-    int activeWeapon = 0;
 
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
@@ -289,8 +310,8 @@ int main(int argc, char* argv[]){
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        processMouse(window, uiManager, sword_weapon, projectileManager.projectiles);
-        processKeyboard(window, player, sword_weapon, projectileManager.projectiles);
+        processMouse(window, uiManager, weaponManager, projectileManager.projectiles);
+        processKeyboard(window, player, weaponManager);
         player.grounded = false;
 
         switch (game) {
@@ -301,9 +322,7 @@ int main(int argc, char* argv[]){
 
             glm::vec3 originalMovement = player.movement;
 
-            sword_weapon.Update(camera, renderer, deltaTime);
-
-            colMgr.CheckMeleeSweep(enemyManager, sword_weapon);
+            weaponManager.Update(camera, renderer, colMgr, enemyManager, deltaTime);
 
             sceneManager.Update(deltaTime);
 
@@ -383,24 +402,27 @@ void mouseCallback(GLFWwindow* window, double xposIn, double yposIn)
     }
 }
 
-void processMouse(GLFWwindow* window, UIManager& uiManager, weapon& gun_weapon, std::vector<Projectile>& projectiles) {
+void processMouse(GLFWwindow* window, UIManager& uiManager, WeaponManager& weaponManager, std::vector<Projectile>& projectiles) {
     bool leftClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
     if (leftClick && !leftMousePressed) {
         uiManager.OnMouseClick(mouseX, mouseY);
     }
     leftMousePressed = leftClick;
     uiManager.OnMouseMove(mouseX, mouseY);
-    if (game == Game::GAME_SCREEN && leftClick) {
-        gun_weapon.fire(projectiles);
+    weapon* w = weaponManager.getActiveWeapon();
+    if (w && game == Game::GAME_SCREEN && leftClick) {
+        if (w->type == weapon::WeaponType::Range || w->type == weapon::WeaponType::Both)
+            w->fire(projectiles);
     }
     bool rightClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
     if (rightClick && !rightMousePressed && game == Game::GAME_SCREEN) {
-        gun_weapon.startMelee();
+        if (w && (w->type == weapon::WeaponType::Melee || w->type == weapon::WeaponType::Both))
+            w->startMelee();
     }
     rightMousePressed = rightClick;
 }
 
-void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon, std::vector<Projectile>& projectiles) {
+void processKeyboard(GLFWwindow* window, Player& player, WeaponManager& weaponManager) {
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         ProcessViewControls(player, FORWARD, camera, deltaTime);
     }
@@ -418,5 +440,14 @@ void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon, std
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
         ProcessViewControls(player, DOWN, camera, deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+        weaponManager.setActiveWeapon(0);
+    }
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+        weaponManager.setActiveWeapon(1);
+    }
+    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+        weaponManager.setActiveWeapon(2);
     }
 }

@@ -46,6 +46,7 @@
     <ClInclude Include="Lights.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MathHelpers.h" />
+    <ClInclude Include="meele.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="objects.h" />
     <ClInclude Include="ObjectOrientation.h" />
@@ -71,6 +72,7 @@
     <ClInclude Include="OptionsScreen.h" />
     <ClInclude Include="PauseScreen.h" />
     <ClInclude Include="UIManager.h" />
+    <ClInclude Include="WeaponManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\shaders\animation.fs" />
