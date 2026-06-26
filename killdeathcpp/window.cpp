@@ -234,9 +234,9 @@ int main(int argc, char* argv[]){
 
     EnemyModel meeleEnemy{ meeleEnemyObject };
     meeleEnemy.attackRange = 0.5f;
-    skeletonEnemy.state = CHASE;
-    skeletonEnemy.attackAnimation = 0;
-    skeletonEnemy.chaseAnimation = -1;
+    meeleEnemy.state = CHASE;
+    meeleEnemy.attackAnimation = 0;
+    meeleEnemy.chaseAnimation = -1;
 
     Projectile basicProjectile{ objectCube, basicProjectileType };
     basicProjectile.object.orientation.changeSize(glm::vec3(-0.9f));
@@ -248,7 +248,7 @@ int main(int argc, char* argv[]){
 
     EnemyManager enemyManager;
     enemyManager.AddEnemy(basicEnemy);
-    enemyManager.AddEnemy(meeleEnemy);
+    //enemyManager.AddEnemy(meeleEnemy);
 
     //enemyManager.AddEnemy(skeletonEnemy);
 
@@ -322,12 +322,12 @@ int main(int argc, char* argv[]){
 
             glm::vec3 originalMovement = player.movement;
 
-            weaponManager.Update(camera, renderer, colMgr, enemyManager, deltaTime);
-
             sceneManager.Update(deltaTime);
 
             enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
             projectileManager.Update(deltaTime);
+
+            weaponManager.Update(camera, renderer, colMgr, enemyManager, deltaTime);
 
             colMgr.CheckSceneCollision(player, sceneManager, camera.position);
             colMgr.CheckEnemyCollision(player, enemyManager, camera.position);
@@ -417,7 +417,7 @@ void processMouse(GLFWwindow* window, UIManager& uiManager, WeaponManager& weapo
     bool rightClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
     if (rightClick && !rightMousePressed && game == Game::GAME_SCREEN) {
         if (w && (w->type == weapon::WeaponType::Melee || w->type == weapon::WeaponType::Both))
-            w->startMelee();
+            w->meeleAttack.startMelee(w->weaponObject);
     }
     rightMousePressed = rightClick;
 }

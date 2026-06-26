@@ -80,23 +80,7 @@ struct ObjectCollision {
         hasCapsules = !capsuleLocs.empty();
     }
 
-    void setSweepCapsule(const CapsuleWorldLoc& cap) {
-        sweepCapsule = cap;
-        hasSweepCapsule = true;
-    }
-
-    const CapsuleWorldLoc& getSweepCapsule() const {
-        return sweepCapsule;
-    }
-
-    void clearSweepCapsule() {
-        hasSweepCapsule = false;
-    }
-
-    bool hasSweepCapsule = false;
-
 private:
-    CapsuleWorldLoc sweepCapsule;
     std::vector<CapsuleHitBoxWorld> capsuleLocs;
     VerticeHitBox vHitbox;
 };

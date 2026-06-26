@@ -112,39 +112,34 @@ public:
         }
     }
 
-    void CheckMeleeSweep(EnemyManager& enemyManager, weapon& w)
+    template<typename T>
+    void CheckEnemyHit(T& e, MeeleAttack& attack)
     {
-        if (!w.updateSweepCapsule()) return;
-        ObjectCollision& col = w.weaponObject.colission;
-        if (!col.hasSweepCapsule) return;
-        const CapsuleWorldLoc& capsule = col.getSweepCapsule();
+        if (!e.alive || e.health <= 0 || e.id == attack.id)
+            return;
 
+        if (std::find(attack.hitEnemyIds.begin(), attack.hitEnemyIds.end(), e.id) != attack.hitEnemyIds.end()) return;
+
+        ShapeContact contact = capsuleVsAABB(attack.capsule, e.object.colission.worldAABB);
+
+        if (!contact.isColliding)
+            return;
+        printf("checkenemy hit triggered colliding hitbox \n");
+
+        e.health -= attack.meleeDamage;
+        e.velocity += contact.normal * contact.penetrationDepth * 5.0f;
+
+        attack.hitEnemyIds.push_back(e.id);
+    }
+
+
+    void CheckMeleeSweep(EnemyManager& enemyManager, MeeleAttack& attack)
+    {
         for (Enemy& e : enemyManager.enemies)
-        {
-            if (!e.alive || e.health < 0 || e.id == w.id) continue;
-            bool alreadyHit = false;
-            for (int id : w.hitEnemyIds) if (id == e.id) { alreadyHit = true; break; }
-            if (alreadyHit) continue;
-            ShapeContact contact = capsuleVsAABB(capsule, e.object.colission.worldAABB);
-            if (contact.isColliding) {
-                e.health -= w.meleeDamage;
-                e.velocity += contact.normal * contact.penetrationDepth * 5.0f;
-                w.hitEnemyIds.push_back(e.id);
-            }
-        }
+            CheckEnemyHit(e, attack);
+
         for (EnemyModel& e : enemyManager.modelEnemies)
-        {
-            if (!e.alive || e.health < 0 || e.id == w.id) continue;
-            bool alreadyHit = false;
-            for (int id : w.hitEnemyIds) if (id == e.id) { alreadyHit = true; break; }
-            if (alreadyHit) continue;
-            ShapeContact contact = capsuleVsAABB(capsule, e.object.colission.worldAABB);
-            if (contact.isColliding) {
-                e.health -= w.meleeDamage;
-                e.velocity += contact.normal * contact.penetrationDepth * 5.0f;
-                w.hitEnemyIds.push_back(e.id);
-            }
-        }
+            CheckEnemyHit(e, attack);
     }
 
     void CheckEnemyCollision(Player& player, EnemyManager& enemyManager, const glm::vec3& cameraPos)

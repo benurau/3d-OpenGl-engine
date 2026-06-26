@@ -35,6 +35,7 @@
     <ClCompile Include="TextRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Attack.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ColisionManager.h" />
     <ClInclude Include="CollisionResponse.h" />
