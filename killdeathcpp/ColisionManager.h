@@ -16,20 +16,25 @@ class ColissionManager {
 public:
     std::vector<ShapeContact> contacts;
 
-    AABB predictPlayerAABB(const Player& player) const {
-        AABB next = player.object.colission.worldAABB;
-        next.min += player.movement;
-        next.max += player.movement;
-        return next;
+
+    void resolvePlayerAABBCollision(Player& player, ObjectCollision& col)
+    {
+
+        ShapeContact contact = AABBvsAABBContact(col.worldAABB, player.object.colission.worldAABB);
+        {
+            if (contact.isColliding) {
+                player.grounded |= isGrounded(contact, player.object.colission.worldAABB.min.y);
+                glm::vec3 movement = ResolveColissionPushBack(player.movement, contact);
+                player.movement = movement;
+            }
+        }
     }
 
     void resolvePlayerVertexCollision(Player& player, ObjectCollision& col)
     {
         if (!col.hasVertices) return;
-        AABB nextPlayerAABB = predictPlayerAABB(player);
 
-
-        if (AABBvsAABB(col.worldAABB, nextPlayerAABB))
+        if (AABBvsAABB(col.worldAABB, player.object.colission.worldAABB))
         {
             ShapeContact contact = pointVertBoxCollision(col.getVerticeHitBox(), player.object.orientation.position+player.movement);
             if (contact.isColliding) {
@@ -144,10 +149,13 @@ public:
 
     void CheckEnemyCollision(Player& player, EnemyManager& enemyManager, const glm::vec3& cameraPos)
     {
-        for (Enemy& e : enemyManager.enemies)
-            resolvePlayerVertexCollision(player, e.object.colission);
+        for (Enemy& e : enemyManager.enemies) {
+            if (e.health <= 0)continue;
+            resolvePlayerAABBCollision(player, e.object.colission);
+        }
         for (EnemyModel& e : enemyManager.modelEnemies)
         {
+            if (e.health <= 0)continue;
             resolvePlayerVertexCollision(player, e.object.colission);
             resolvePlayerCapsuleColission(player, e.object.colission, cameraPos);
         }
