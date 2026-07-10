@@ -39,6 +39,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ColisionManager.h" />
     <ClInclude Include="CollisionResponse.h" />
+    <ClInclude Include="CombatManager.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="EnemyManager.h" />
     <ClInclude Include="GameState.h" />

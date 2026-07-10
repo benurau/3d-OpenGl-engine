@@ -29,7 +29,5 @@ struct WeaponManager {
         weapon* w = getActiveWeapon();
         if (!w) return;
         w->Update(camera, renderer, deltaTime);
-        if (w->type == weapon::WeaponType::Melee || w->type == weapon::WeaponType::Both)
-            colMgr.CheckMeleeSweep(enemyManager, w->meeleAttack);
     }
 };

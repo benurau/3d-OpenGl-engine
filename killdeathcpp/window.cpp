@@ -23,6 +23,8 @@
 #include "MainMenuScreen.h"
 #include "OptionsScreen.h"
 #include "PauseScreen.h"
+#include "CombatManager.h"
+#include "attack.h"
 
 enum class Game {
     START_SCREEN,
@@ -210,9 +212,7 @@ int main(int argc, char* argv[]){
     mina.model.setAnimation(0);
 
     weapon gun_weapon{gun};
-    gun_weapon.type = weapon::WeaponType::Range;
     weapon sword_weapon{ sword };
-    sword_weapon.type = weapon::WeaponType::Melee;
 
     WeaponManager weaponManager;
     weaponManager.addWeapon(gun_weapon);
@@ -241,7 +241,16 @@ int main(int argc, char* argv[]){
     Projectile basicProjectile{ objectCube, basicProjectileType };
     basicProjectile.object.orientation.changeSize(glm::vec3(-0.9f));
     basicProjectile.object.colission.updateWorldAABB(basicProjectile.object.orientation.modelMatrix);
-    gun_weapon.projectileT = basicProjectileType;
+
+    Attack gunWeaponAttack = Attack{ gun_weapon.weaponObject, gun_weapon.ownerId };
+    gunWeaponAttack.projectile = basicProjectile;
+    gunWeaponAttack.type = AttackType::Projectile;
+    gun_weapon.attack = gunWeaponAttack;
+
+    Attack meeleWeaponAttack = Attack{ sword_weapon.weaponObject, sword_weapon.ownerId };
+    meeleWeaponAttack.damage = 20.0f;
+    meeleWeaponAttack.type = AttackType::Meele;
+    meeleWeaponAttack.meele = MeeleAttack{ sword_weapon.weaponObject , meeleWeaponAttack.ownerId};
 
     ProjectileManager projectileManager;
     projectileManager.AddProjectile(basicProjectile, 100);
@@ -256,6 +265,8 @@ int main(int argc, char* argv[]){
     mina.orientation.rotate(glm::vec3(90.0f, 3.5f, 2.0f));
 
     ColissionManager colMgr;
+
+    CombatManager cmbMgr;
 
     SceneManager sceneManager;
     sceneManager.Add(floor);
@@ -331,8 +342,10 @@ int main(int argc, char* argv[]){
 
             colMgr.CheckSceneCollision(player, sceneManager, camera.position);
             colMgr.CheckEnemyCollision(player, enemyManager, camera.position);
-            colMgr.CheckProjectileCollision(player, projectileManager);
-            colMgr.CheckProjectileEnemyCollision(projectileManager, enemyManager);
+            cmbMgr.CollectActiveAttacks(weaponManager, enemyManager);
+            cmbMgr.CheckMeeleSweeps(enemyManager, player);
+            cmbMgr.CheckProjectileCollision(player, projectileManager);
+            cmbMgr.CheckProjectileEnemyCollision(projectileManager, enemyManager);
 
             if (player.health <= 0.0f) {
                 deathTimer = 5.0f;
@@ -411,15 +424,14 @@ void processMouse(GLFWwindow* window, UIManager& uiManager, WeaponManager& weapo
     uiManager.OnMouseMove(mouseX, mouseY);
     weapon* w = weaponManager.getActiveWeapon();
     if (w && game == Game::GAME_SCREEN && leftClick) {
-        if (w->type == weapon::WeaponType::Range || w->type == weapon::WeaponType::Both)
-            w->fire(projectiles);
+        w->fire(projectiles);
     }
-    bool rightClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
-    if (rightClick && !rightMousePressed && game == Game::GAME_SCREEN) {
-        if (w && (w->type == weapon::WeaponType::Melee || w->type == weapon::WeaponType::Both))
-            w->meeleAttack.startMelee(w->weaponObject);
-    }
-    rightMousePressed = rightClick;
+    //bool rightClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+    //if (rightClick && !rightMousePressed && game == Game::GAME_SCREEN) {
+    //    if (w && (w->type == weapon::WeaponType::Meele || w->type == weapon::WeaponType::Both))
+    //        w->meeleAttack.startMeele(w->weaponObject);
+    //}
+    //rightMousePressed = rightClick;
 }
 
 void processKeyboard(GLFWwindow* window, Player& player, WeaponManager& weaponManager) {

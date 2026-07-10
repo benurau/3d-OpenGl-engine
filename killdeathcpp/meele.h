@@ -4,17 +4,14 @@
 
 
 struct MeeleAttack {
-    enum class MeleeState { Idle, Swinging, Cooldown };
-    MeleeState meleeState = MeleeState::Idle;
+    enum class MeeleState { Idle, Swinging, Cooldown };
+    MeeleState meeleState = MeeleState::Idle;
     float swingTimer = 0.0f;
     float swingDuration = 0.35f;
-    float meleeCooldownTimer = 0.0f;
-    float meleeCooldown = 0.5f;
-    float meleeDamage = 30.0f;
-    float meleeRadius = 0.3f;
-    int meleeSwingAnimIndex = 0;
+    float meeleRadius = 0.3f;
+    int meeleSwingAnimIndex = 0;
 
-    int id = 0;
+    int ownerId;
 
     glm::vec3 localMeshTip{ 0.0f };
     glm::vec3 prevWorldTip{ 0.0f };
@@ -26,8 +23,9 @@ struct MeeleAttack {
 
 
 
-    MeeleAttack(ModelObject& attackObject, int ownerId) {
-        findTip(attackObject); id = ownerId;
+    MeeleAttack() : ownerId(-1) {}
+    MeeleAttack(ModelObject& attackObject, int id) {
+        findTip(attackObject), ownerId= id;
     }
 
     void findTip(ModelObject& attackObject) {
@@ -52,49 +50,47 @@ struct MeeleAttack {
         return glm::vec3(attackObject.orientation.modelMatrix * glm::vec4(localMeshTip, 1.0f));
     }
 
-    void startMelee(ModelObject& attackObject) {
-        if (meleeState != MeleeState::Idle) return;
-        meleeState = MeleeState::Swinging;
+    void startMeele(ModelObject& attackObject) {
+        if (meeleState != MeeleState::Idle) return;
+        meeleState = MeeleState::Swinging;
         swingTimer = 0.0f;
         hasPrevTip = false;
         hitEnemyIds.clear();
-        attackObject.model.setAnimation(meleeSwingAnimIndex, true);
+        attackObject.model.setAnimation(meeleSwingAnimIndex, true);
     }
 
-    void updateMelee(float deltaTime, ModelObject& attackObject) {
-        switch (meleeState) {
-        case MeleeState::Swinging:
+    void updateMeele(float deltaTime, ModelObject& attackObject, float coolDown) {
+        switch (meeleState) {
+        case MeeleState::Swinging:
             swingTimer += deltaTime;
             updateSweepCapsule(attackObject);
             if (swingTimer >= swingDuration) {
-                meleeState = MeleeState::Cooldown;
-                meleeCooldownTimer = meleeCooldown;
+                meeleState = MeeleState::Cooldown;
                 hasPrevTip = false;
                 hitEnemyIds.clear();
             }
             break;
-        case MeleeState::Cooldown:
-            meleeCooldownTimer -= deltaTime;
-            if (meleeCooldownTimer <= 0.0f)
-                meleeState = MeleeState::Idle;
+        case MeeleState::Cooldown:
+            if (coolDown <= 0.0f)
+                meeleState = MeeleState::Idle;
             break;
         }
     }
 
     bool updateSweepCapsule(ModelObject& attackObject) {
-        if (meleeState != MeleeState::Swinging) return false;
+        if (meeleState != MeeleState::Swinging) return false;
         glm::vec3 currentTip = getCurrentTipWorld(attackObject);
         if (!hasPrevTip) {
             prevWorldTip = currentTip;
             capsule.p0 = currentTip;
             capsule.p1 = currentTip;
-            capsule.radius = meleeRadius;
+            capsule.radius = meeleRadius;
             hasPrevTip = true;
             return false;
         }
         capsule.p0 = prevWorldTip;
         capsule.p1 = currentTip;
-        capsule.radius = meleeRadius;
+        capsule.radius = meeleRadius;
         prevWorldTip = currentTip;
         return true;
     }

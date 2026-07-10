@@ -215,6 +215,12 @@
     <ClInclude Include="meele.h">
       <Filter>Header Files\InteractionhFiles\gameFiles</Filter>
     </ClInclude>
+    <ClInclude Include="Attack.h">
+      <Filter>Header Files\InteractionhFiles\gameFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatManager.h">
+      <Filter>Header Files\InteractionhFiles\managerFiles</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

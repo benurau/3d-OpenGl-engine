@@ -24,7 +24,7 @@ public:
     {
         for (Enemy& e : enemies)
         {
-            if (e.health < 0) { continue; }
+            if (e.health <= 0) { continue; }
             UpdateEnemy(e, playerPos, dt, projectileManager.projectiles);
 
             e.object.colission.updateWorldAABBV(e.object.orientation.modelMatrix);
@@ -32,7 +32,7 @@ public:
 
         for (EnemyModel& e : modelEnemies)
         {
-            if (e.health < 0) { continue; }
+            if (e.health <= 0) { continue; }
             UpdateEnemy(e, playerPos, dt, projectileManager.projectiles);
 
             e.object.model.updateAnimation(dt);
@@ -49,14 +49,14 @@ public:
     {
         for (Enemy& e : enemies)
         {
-            if (e.health < 0) { continue; }
+            if (e.health <= 0) { continue; }
             e.object.orientation.changeView(camera.GetViewMatrix());
             renderer.draw(e.object.mesh, e.object.orientation, material);
         }
 
         for (EnemyModel& e : modelEnemies)
         {
-            if (e.health < 0) { continue; }
+            if (e.health <= 0) { continue; }
             e.object.orientation.changeView(camera.GetViewMatrix());
             renderer.drawModel(e.object.model, e.object.orientation);
         }

@@ -62,19 +62,6 @@ public:
         }
     }
 
-    void CheckProjectileCollision(Player& player, ProjectileManager& pManager)
-    {
-        for (Projectile& p : pManager.projectiles)
-        {
-            if (!p.active) continue;
-            if (p.ownerId == -1) continue;
-            if (AABBvsAABB(p.object.colission.worldAABB, player.object.colission.worldAABB))
-            {
-                player.health -= p.type.damage;
-                p.active = false;
-            }
-        }
-    }
 
     void CheckSceneCollision(Player& player, SceneManager& scene, const glm::vec3& cameraPos)
     {
@@ -88,64 +75,6 @@ public:
         }
     }
 
-    void CheckProjectileEnemyCollision(ProjectileManager& pManager, EnemyManager& enemyManager)
-    {
-        for (Projectile& p : pManager.projectiles)
-        {
-            if (!p.active) continue;
-            for (Enemy& e : enemyManager.enemies)
-            {
-                if (e.id == p.ownerId) continue;
-                if (AABBvsAABB(p.object.colission.worldAABB, e.object.colission.worldAABB))
-                {
-                    e.health -= p.type.damage;
-                    p.active = false;
-                    break;
-                }
-            }
-            if (!p.active) continue;
-            for (EnemyModel& e : enemyManager.modelEnemies)
-            {
-                if (e.id == p.ownerId) continue;
-                if (AABBvsAABB(p.object.colission.worldAABB, e.object.colission.worldAABB))
-                {
-                    e.health -= p.type.damage;
-                    p.active = false;
-                    break;
-                }
-            }
-        }
-    }
-
-    template<typename T>
-    void CheckEnemyHit(T& e, MeeleAttack& attack)
-    {
-        if (!e.alive || e.health <= 0 || e.id == attack.id)
-            return;
-
-        if (std::find(attack.hitEnemyIds.begin(), attack.hitEnemyIds.end(), e.id) != attack.hitEnemyIds.end()) return;
-
-        ShapeContact contact = capsuleVsAABB(attack.capsule, e.object.colission.worldAABB);
-
-        if (!contact.isColliding)
-            return;
-        printf("checkenemy hit triggered colliding hitbox \n");
-
-        e.health -= attack.meleeDamage;
-        e.velocity += contact.normal * contact.penetrationDepth * 5.0f;
-
-        attack.hitEnemyIds.push_back(e.id);
-    }
-
-
-    void CheckMeleeSweep(EnemyManager& enemyManager, MeeleAttack& attack)
-    {
-        for (Enemy& e : enemyManager.enemies)
-            CheckEnemyHit(e, attack);
-
-        for (EnemyModel& e : enemyManager.modelEnemies)
-            CheckEnemyHit(e, attack);
-    }
 
     void CheckEnemyCollision(Player& player, EnemyManager& enemyManager, const glm::vec3& cameraPos)
     {

@@ -4,20 +4,16 @@
 #include "Renderer.h"
 #include "Colissions.h"
 #include "meele.h"
+#include "Attack.h"
 
 struct weapon {
     ModelObject& weaponObject;
-    ProjectileType projectileT;
-    MeeleAttack meeleAttack;
+    Attack attack;
     float shootTimer = 0.0f;
     float shootCooldown = 0.25f;
-
-
-    enum class WeaponType { Melee, Range, Both };
-    WeaponType type = WeaponType::Range;
-
-    
-    weapon(ModelObject& obj) : weaponObject(obj), meeleAttack(MeeleAttack(obj, -1)) {}
+    int ownerId = -1;
+  
+    weapon(ModelObject& obj) : weaponObject(obj){}
 
     void Update(Camera& camera, Renderer& renderer, float deltaTime)
     {
@@ -37,17 +33,14 @@ struct weapon {
         weaponObject.orientation.changeView(camera.GetViewMatrix());
         renderer.drawModel(weaponObject.model, weaponObject.orientation);
 
-        meeleAttack.updateMelee(deltaTime, weaponObject);
+        attack.Update(deltaTime, weaponObject);
     }
-
-    
 
     void fire(std::vector<Projectile>& projectiles)
     {
-        if (shootTimer > 0.0f) return;
-        weaponObject.model.setAnimation(0, true);
         glm::vec3 forward = glm::normalize(glm::vec3(weaponObject.orientation.modelMatrix[0]));
-        SpawnProjectile(weaponObject.orientation.position, forward, projectileT, projectiles);
-        shootTimer = shootCooldown;
+        attack.StartAttack(weaponObject, forward, projectiles);
     }
+
+    
 };
