@@ -2,6 +2,7 @@
 #include "objects.h"
 #include "Projectile.h"
 #include "MathHelpers.h"
+#include "Attack.h"
 
 
 enum EnemyState
@@ -55,9 +56,7 @@ struct EnemyModel {
     EnemyState state;
     float stateTimer;
 
-    ProjectileType ptype;
-    float shootCooldown = 2.0f;
-    float shootTimer = 1.0f;
+    Attack attack;
 
     bool alive = true;
     static inline int nextId = 0;
@@ -113,18 +112,19 @@ void UpdateEnemy(EnemyModel& e, glm::vec3 targetPosition, float dt, std::vector<
     }
     case ATTACK:
     {
-        e.shootTimer -= dt;
         glm::vec3 dir = CalculateDirection(e.object.orientation.position, targetPosition);
         float dist = glm::length(targetPosition - e.object.orientation.position);
 
         if (dist > e.attackRange) {
             e.state = CHASE;
         }
-        else if (e.shootTimer <= 0.0f)
-        {
-            e.object.model.setAnimation(e.attackAnimation);
-            SpawnProjectile(e.object.orientation.position, dir, e.ptype, projectiles, e.id);
-            e.shootTimer = e.shootCooldown;
+        else {
+            e.attack.Update(dt, e.object);
+            if (e.attack.timer <= 0.0f)
+            {
+                e.object.model.setAnimation(e.attackAnimation);
+                e.attack.StartAttack(e.object, dir, projectiles);
+            }
         }
         break;
     }

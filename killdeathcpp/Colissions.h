@@ -281,7 +281,10 @@ inline ShapeContact pointInCapsule(const glm::vec3& point, CapsuleWorldLoc capsu
     contact.closestPoint = closest;
     contact.penetrationDepth = capsule.radius - dist;
     contact.isColliding = contact.penetrationDepth > 0.0f;
-    contact.normal = delta / dist;
+    if (dist > 0.000001f)
+        contact.normal = delta / dist;
+    else
+        contact.normal = glm::vec3(0.0f, 1.0f, 0.0f);
     return contact;
 }
 

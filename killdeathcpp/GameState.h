@@ -27,7 +27,7 @@ struct GameState {
         int health;
         EnemyState state;
         float stateTimer;
-        float shootTimer;
+        float attackTimer;
         bool alive;
     };
 
@@ -48,7 +48,7 @@ struct GameState {
 
         modelEnemies.clear();
         for (auto& e : mgr.modelEnemies)
-            modelEnemies.push_back({ e.object.orientation.position, e.velocity, e.health, e.state, e.stateTimer, e.shootTimer, e.alive });
+            modelEnemies.push_back({ e.object.orientation.position, e.velocity, e.health, e.state, e.stateTimer, e.attack.timer, e.alive });
     }
 
     void Restore(Player& player, EnemyManager& mgr)
@@ -77,7 +77,7 @@ struct GameState {
             mgr.modelEnemies[i].health = modelEnemies[i].health;
             mgr.modelEnemies[i].state = modelEnemies[i].state;
             mgr.modelEnemies[i].stateTimer = modelEnemies[i].stateTimer;
-            mgr.modelEnemies[i].shootTimer = modelEnemies[i].shootTimer;
+            mgr.modelEnemies[i].attack.timer = modelEnemies[i].attackTimer;
             mgr.modelEnemies[i].alive = modelEnemies[i].alive;
         }
     }

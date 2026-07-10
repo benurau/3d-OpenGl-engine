@@ -20,6 +20,7 @@ struct MeeleAttack {
     CapsuleWorldLoc capsule;
 
     std::vector<int> hitEnemyIds;
+    bool hitPlayer = false;
 
 
 
@@ -56,6 +57,7 @@ struct MeeleAttack {
         swingTimer = 0.0f;
         hasPrevTip = false;
         hitEnemyIds.clear();
+        hitPlayer = false;
         attackObject.model.setAnimation(meeleSwingAnimIndex, true);
     }
 

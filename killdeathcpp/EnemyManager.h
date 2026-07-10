@@ -32,8 +32,10 @@ public:
 
         for (EnemyModel& e : modelEnemies)
         {
-            if (e.health <= 0) { continue; }
+            if (e.health < 0) { continue; }
             UpdateEnemy(e, playerPos, dt, projectileManager.projectiles);
+
+            e.attack.Update(dt, e.object);
 
             e.object.model.updateAnimation(dt);
             e.object.model.updateNodeTransforms();

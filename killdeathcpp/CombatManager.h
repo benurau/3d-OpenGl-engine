@@ -52,23 +52,30 @@ struct CombatManager {
     }
 
     template<typename T>
-    void CheckEnemyHitMeele(T& e, Attack& attack)
+    void CheckHitTarget(T& target, Attack& attack)
     {
-        if (!e.alive || e.health <= 0 || e.id == attack.ownerId)
+        if (!target.alive || target.health <= 0 || target.id == attack.ownerId)
             return;
 
-        if (std::find(attack.meele.hitEnemyIds.begin(), attack.meele.hitEnemyIds.end(), e.id) != attack.meele.hitEnemyIds.end()) return;
+        if (target.id == -1) {
+            if (attack.meele.hitPlayer) return;
+        } else {
+            if (std::find(attack.meele.hitEnemyIds.begin(), attack.meele.hitEnemyIds.end(), target.id) != attack.meele.hitEnemyIds.end()) return;
+        }
 
-        ShapeContact contact = capsuleVsAABB(attack.meele.capsule, e.object.colission.worldAABB);
+        ShapeContact contact = capsuleVsAABB(attack.meele.capsule, target.object.colission.worldAABB);
 
         if (!contact.isColliding)
             return;
-        printf("checkenemy hit triggered colliding hitbox \n");
 
-        e.health -= attack.damage;
-        e.velocity += contact.normal * contact.penetrationDepth * 5.0f;
+        target.health -= attack.damage;
+        target.velocity += contact.normal * contact.penetrationDepth * 5.0f;
 
-        attack.meele.hitEnemyIds.push_back(e.id);
+        if (target.id == -1) {
+            attack.meele.hitPlayer = true;
+        } else {
+            attack.meele.hitEnemyIds.push_back(target.id);
+        }
     }
 
 
@@ -80,9 +87,12 @@ struct CombatManager {
             if (w && w->attack.meele.meeleState == MeeleAttack::MeeleState::Swinging)
                 activeAttacks.push_back(&w->attack);
         }
-        /*for (auto& e : enemyManager.enemies)
-            if (e.meeleAttack.meeleState == MeeleAttack::MeeleState::Swinging)
-                activeAttacks.push_back(&e.meeleAttack);*/
+        for (EnemyModel& e : enemyManager.modelEnemies)
+        {
+            if (e.attack.type == AttackType::Meele && 
+                e.attack.meele.meeleState == MeeleAttack::MeeleState::Swinging)
+                activeAttacks.push_back(&e.attack);
+        }
     }
 
     void CheckMeeleSweeps(EnemyManager& enemyManager, Player& player)
@@ -90,15 +100,13 @@ struct CombatManager {
         for (Attack* attack : activeAttacks)
         {
             for (Enemy& e : enemyManager.enemies)
-                CheckEnemyHitMeele(e, *attack);
+                CheckHitTarget(e, *attack);
 
             for (EnemyModel& e : enemyManager.modelEnemies)
-                CheckEnemyHitMeele(e, *attack);
+                CheckHitTarget(e, *attack);
 
-            //CheckEnemyHitMeele(player, *attack);
+            CheckHitTarget(player, *attack);
         }
     }
-
-    
 
 };

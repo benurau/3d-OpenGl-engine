@@ -13,28 +13,30 @@ struct Player {
 
     float health = 100;
     bool alive = true;
+    int id = -1;
+    glm::vec3 velocity{ 0.0f };
 };
 
 void ProcessViewControls(Player& player, Camera_Movement direction, Camera& camera, float deltaTime)
 {
-    float velocity = player.movementSpeed * deltaTime;
+    float speed = player.movementSpeed * deltaTime;
     glm::vec3 flatFront = glm::normalize(glm::vec3(camera.Front.x, 0.0f, camera.Front.z));
 
     if (direction == FORWARD)
     {
-        player.movement += flatFront * velocity;
+        player.movement += flatFront * speed;
     }
     if (direction == BACKWARD)
     {
-        player.movement += -flatFront * velocity;
+        player.movement += -flatFront * speed;
     }
     if (direction == LEFT)
     {
-        player.movement += -camera.Right * velocity;
+        player.movement += -camera.Right * speed;
     }
     if (direction == RIGHT)
     {
-        player.movement += camera.Right * velocity;
+        player.movement += camera.Right * speed;
     }
     if (direction == UP && player.grounded)
     {
