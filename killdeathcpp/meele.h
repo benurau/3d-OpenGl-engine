@@ -9,7 +9,6 @@ struct MeeleAttack {
     float swingTimer = 0.0f;
     float swingDuration = 0.35f;
     float meeleRadius = 0.3f;
-    int meeleSwingAnimIndex = 0;
 
     int ownerId;
 
@@ -18,6 +17,7 @@ struct MeeleAttack {
     bool hasPrevTip = false;
 
     CapsuleWorldLoc capsule;
+    CapsuleWorldLoc hiltCapsule;
 
     std::vector<int> hitEnemyIds;
     bool hitPlayer = false;
@@ -58,7 +58,6 @@ struct MeeleAttack {
         hasPrevTip = false;
         hitEnemyIds.clear();
         hitPlayer = false;
-        attackObject.model.setAnimation(meeleSwingAnimIndex, true);
     }
 
     void updateMeele(float deltaTime, ModelObject& attackObject, float coolDown) {
@@ -82,17 +81,24 @@ struct MeeleAttack {
     bool updateSweepCapsule(ModelObject& attackObject) {
         if (meeleState != MeeleState::Swinging) return false;
         glm::vec3 currentTip = getCurrentTipWorld(attackObject);
+        glm::vec3 hiltWorld = glm::vec3(attackObject.orientation.modelMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         if (!hasPrevTip) {
             prevWorldTip = currentTip;
             capsule.p0 = currentTip;
             capsule.p1 = currentTip;
             capsule.radius = meeleRadius;
+            hiltCapsule.p0 = hiltWorld;
+            hiltCapsule.p1 = currentTip;
+            hiltCapsule.radius = meeleRadius;  
             hasPrevTip = true;
             return false;
         }
         capsule.p0 = prevWorldTip;
         capsule.p1 = currentTip;
         capsule.radius = meeleRadius;
+        hiltCapsule.p0 = hiltWorld;
+        hiltCapsule.p1 = currentTip;
+        hiltCapsule.radius = meeleRadius;
         prevWorldTip = currentTip;
         return true;
     }

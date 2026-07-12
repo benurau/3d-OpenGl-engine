@@ -230,14 +230,12 @@ int main(int argc, char* argv[]){
     EnemyModel skeletonEnemy{ skeleton };
     skeletonEnemy.attackRange = 2.0f;
     skeletonEnemy.state = CHASE;
-    skeletonEnemy.attackAnimation = 0;
     skeletonEnemy.chaseAnimation = -1;
 
     EnemyModel meeleEnemy{ meeleEnemyObject };
     meeleEnemy.object.orientation.movePos(glm::vec3(4.0f, -4.0f, 5.0f));
     meeleEnemy.attackRange = 0.5f;
     meeleEnemy.state = CHASE;
-    meeleEnemy.attackAnimation = 0;
     meeleEnemy.chaseAnimation = -1;
 
     Projectile basicProjectile{ objectCube, basicProjectileType };
@@ -246,23 +244,27 @@ int main(int argc, char* argv[]){
 
     Attack skeletonAttack{ skeletonEnemy.object, skeletonEnemy.id };
     skeletonAttack.type = AttackType::Projectile;
+    skeletonAttack.animationIndex = 0;
     skeletonAttack.projectile = basicProjectile;
     skeletonEnemy.attack = skeletonAttack;
 
     Attack meleeEnemyAttack{ meeleEnemy.object, meeleEnemy.id };
     meleeEnemyAttack.type = AttackType::Meele;
     meleeEnemyAttack.damage = 20.0f;
+    meleeEnemyAttack.animationIndex = 0;
     meleeEnemyAttack.meele = MeeleAttack{ meeleEnemy.object, meleeEnemyAttack.ownerId };
     meeleEnemy.attack = meleeEnemyAttack;
 
     Attack gunWeaponAttack = Attack{ gun_weapon.weaponObject, gun_weapon.ownerId };
     gunWeaponAttack.projectile = basicProjectile;
     gunWeaponAttack.type = AttackType::Projectile;
+    gunWeaponAttack.animationIndex = 0;
     gun_weapon.attack = gunWeaponAttack;
 
     Attack meeleWeaponAttack = Attack{ sword_weapon.weaponObject, sword_weapon.ownerId };
     meeleWeaponAttack.damage = 20.0f;
     meeleWeaponAttack.type = AttackType::Meele;
+    meeleWeaponAttack.animationIndex = 0;
     meeleWeaponAttack.meele = MeeleAttack{ sword_weapon.weaponObject , meeleWeaponAttack.ownerId};
 
     ProjectileManager projectileManager;

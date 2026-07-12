@@ -16,6 +16,7 @@ struct Attack
     float cooldown = 0.5f;
     float timer = 0.0f;
     int damage = 10.0f;
+    int animationIndex = 0;
 
     MeeleAttack meele;
     Projectile projectile;
@@ -49,6 +50,8 @@ struct Attack
         if (timer > 0.0f)
             return;
 
+        object.model.setAnimation(animationIndex, true);
+
         switch (type)
         {
         case AttackType::Meele:
@@ -56,11 +59,8 @@ struct Attack
             break;
 
         case AttackType::Projectile:
-        {
-            object.model.setAnimation(0, true);
             SpawnProjectile( object.orientation.position, direction, projectile.type, projectilePool, ownerId);
             break;
-        }
         }
 
         timer = cooldown;

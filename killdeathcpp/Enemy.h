@@ -50,7 +50,6 @@ struct EnemyModel {
     float attackRange;
     float attackLength;
 
-    int attackAnimation;
     int chaseAnimation;
 
     EnemyState state;
@@ -106,6 +105,8 @@ void UpdateEnemy(EnemyModel& e, glm::vec3 targetPosition, float dt, std::vector<
             e.state = ATTACK;
         else {
             e.object.model.setAnimation(e.chaseAnimation);
+            float desiredYaw = CalculateYawToTarget(e.object.orientation.position, targetPosition);
+            e.object.orientation.rotate(glm::vec3(0.0f, desiredYaw - e.object.orientation.rotation.y, 0.0f));
             e.object.orientation.movePos(dir * e.moveSpeed * dt);
         }
         break;
@@ -119,10 +120,11 @@ void UpdateEnemy(EnemyModel& e, glm::vec3 targetPosition, float dt, std::vector<
             e.state = CHASE;
         }
         else {
+            float desiredYaw = CalculateYawToTarget(e.object.orientation.position, targetPosition);
+            e.object.orientation.rotate(glm::vec3(0.0f, desiredYaw - e.object.orientation.rotation.y, 0.0f));
             e.attack.Update(dt, e.object);
             if (e.attack.timer <= 0.0f)
             {
-                e.object.model.setAnimation(e.attackAnimation);
                 e.attack.StartAttack(e.object, dir, projectiles);
             }
         }

@@ -41,7 +41,10 @@ public:
             e.object.model.updateNodeTransforms();
             e.object.model.updateSkins();
 
-            e.object.colission.updateModelAABBskins(e.object.model);
+            if (!e.object.model.skins.empty())
+                e.object.colission.updateModelAABBskins(e.object.model);
+            else
+                e.object.colission.updateModelAABBnodes(e.object.model);
             e.object.colission.updateWorldAABB(e.object.orientation.modelMatrix);
             e.object.colission.updateCapsuleLocs(e.object.model, e.object.orientation);
         }
