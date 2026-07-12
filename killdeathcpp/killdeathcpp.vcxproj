@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props')" />
   <ItemGroup Label="ProjectConfigurations">
@@ -32,18 +32,23 @@
     <ClCompile Include="thirdparty_impl.cpp" />
     <ClCompile Include="Wav.cpp" />
     <ClCompile Include="window.cpp" />
+    <ClCompile Include="TextRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Attack.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ColisionManager.h" />
     <ClInclude Include="CollisionResponse.h" />
+    <ClInclude Include="CombatManager.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="EnemyManager.h" />
+    <ClInclude Include="GameState.h" />
     <ClInclude Include="Geometry3D.h" />
     <ClInclude Include="HitBox.h" />
     <ClInclude Include="Lights.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MathHelpers.h" />
+    <ClInclude Include="meele.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="objects.h" />
     <ClInclude Include="ObjectOrientation.h" />
@@ -59,6 +64,17 @@
     <ClInclude Include="ObjectParams.h" />
     <ClInclude Include="tinyModel.h" />
     <ClInclude Include="Wav.h" />
+    <ClInclude Include="Weapon.h" />
+    <ClInclude Include="TextRenderer.h" />
+    <ClInclude Include="UIElement.h" />
+    <ClInclude Include="TextLabel.h" />
+    <ClInclude Include="Button.h" />
+    <ClInclude Include="UIScreen.h" />
+    <ClInclude Include="MainMenuScreen.h" />
+    <ClInclude Include="OptionsScreen.h" />
+    <ClInclude Include="PauseScreen.h" />
+    <ClInclude Include="UIManager.h" />
+    <ClInclude Include="WeaponManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\shaders\animation.fs" />
@@ -82,6 +98,10 @@
     <None Include="..\shaders\multiLight.fs" />
     <None Include="..\shaders\quad3d.fs" />
     <None Include="..\shaders\quad3d.vs" />
+    <None Include="..\shaders\text.fs" />
+    <None Include="..\shaders\text.vs" />
+    <None Include="..\shaders\ui.fs" />
+    <None Include="..\shaders\ui.vs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

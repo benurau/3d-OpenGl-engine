@@ -2,6 +2,7 @@
 #include "objects.h"
 #include "Projectile.h"
 #include "MathHelpers.h"
+#include "Attack.h"
 
 
 enum EnemyState
@@ -20,8 +21,7 @@ struct Enemy {
     glm::vec3 velocity;
     float moveSpeed = 1.0f;
 
-    int health;
-    int maxHealth;
+    int health = 100;
     int damage;
 
     float attackRange;
@@ -30,10 +30,12 @@ struct Enemy {
     float stateTimer;
 
     ProjectileType ptype;
-    float shootCooldown = 0;
+    float shootCooldown = 2.0f;
     float shootTimer = 5.0f;
 
-    bool alive;
+    bool alive = true;
+    static inline int nextId = 0;
+    int id = nextId++;
 };
 
 struct EnemyModel {
@@ -42,24 +44,22 @@ struct EnemyModel {
     glm::vec3 velocity;
     float moveSpeed = 1.0f;
 
-    int health;
-    int maxHealth;
+    int health = 100;
     int damage;
 
     float attackRange;
     float attackLength;
 
-    int attackAnimation;
     int chaseAnimation;
 
     EnemyState state;
     float stateTimer;
 
-    ProjectileType ptype;
-    float shootCooldown = 0;
-    float shootTimer = 5.0f;
+    Attack attack;
 
-    bool alive;
+    bool alive = true;
+    static inline int nextId = 0;
+    int id = nextId++;
 };
 
 void UpdateEnemy(Enemy& e, glm::vec3 targetPosition, float dt, std::vector<Projectile>& projectiles) {
@@ -81,13 +81,12 @@ void UpdateEnemy(Enemy& e, glm::vec3 targetPosition, float dt, std::vector<Proje
         e.shootTimer -= dt;
         glm::vec3 dir = CalculateDirection(e.object.orientation.position, targetPosition);
         float dist = glm::length(targetPosition - e.object.orientation.position);
-
         if (dist > e.attackRange) {
             e.state = CHASE;
         }
         else if (e.shootTimer <= 0.0f)
         {
-            SpawnProjectile(e.object.orientation.position, dir, e.ptype, projectiles);
+            SpawnProjectile(e.object.orientation.position, dir, e.ptype, projectiles, e.id);
             e.shootTimer = e.shootCooldown;
         }
         break;
@@ -106,24 +105,28 @@ void UpdateEnemy(EnemyModel& e, glm::vec3 targetPosition, float dt, std::vector<
             e.state = ATTACK;
         else {
             e.object.model.setAnimation(e.chaseAnimation);
+            float desiredYaw = CalculateYawToTarget(e.object.orientation.position, targetPosition);
+            e.object.orientation.rotate(glm::vec3(0.0f, desiredYaw - e.object.orientation.rotation.y, 0.0f));
             e.object.orientation.movePos(dir * e.moveSpeed * dt);
         }
         break;
     }
     case ATTACK:
     {
-        e.shootTimer -= dt;
         glm::vec3 dir = CalculateDirection(e.object.orientation.position, targetPosition);
         float dist = glm::length(targetPosition - e.object.orientation.position);
 
         if (dist > e.attackRange) {
             e.state = CHASE;
         }
-        else if (e.shootTimer <= 0.0f)
-        {
-            e.object.model.setAnimation(e.attackAnimation);
-            SpawnProjectile(e.object.orientation.position, dir, e.ptype, projectiles);
-            e.shootTimer = e.shootCooldown;
+        else {
+            float desiredYaw = CalculateYawToTarget(e.object.orientation.position, targetPosition);
+            e.object.orientation.rotate(glm::vec3(0.0f, desiredYaw - e.object.orientation.rotation.y, 0.0f));
+            e.attack.Update(dt, e.object);
+            if (e.attack.timer <= 0.0f)
+            {
+                e.attack.StartAttack(e.object, dir, projectiles);
+            }
         }
         break;
     }

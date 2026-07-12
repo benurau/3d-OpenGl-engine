@@ -1,4 +1,5 @@
 #include <iostream>
+#include <functional>
 #include "renderer.h"
 #include "soundEngine.h"
 #include "Camera.h"
@@ -14,46 +15,42 @@
 #include "SceneManager.h"
 #include "CollisionResponse.h"
 #include "ColisionManager.h"
+#include "Weapon.h"
+#include "WeaponManager.h"
+#include "GameState.h"
+#include "TextRenderer.h"
+#include "UIManager.h"
+#include "MainMenuScreen.h"
+#include "OptionsScreen.h"
+#include "PauseScreen.h"
+#include "CombatManager.h"
+#include "attack.h"
+
+enum class Game {
+    START_SCREEN,
+    GAME_SCREEN,
+    PAUSE_SCREEN,
+    DEATH_SCREEN
+};
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 bool firstMouse = true;
 float lastX = C_RES_WIDTH / 2.0;
 float lastY = C_RES_HEIGHT / 2.0;
+float mouseX = 0.0f, mouseY = 0.0f;
+bool leftMousePressed = false;
+bool rightMousePressed = false;
+bool escapePressed = false;
+Game game = Game::START_SCREEN;
 Camera camera;
-
-struct weapon {
-    ModelObject& weaponObject;
-
-    weapon(ModelObject& obj) : weaponObject(obj) {}
-
-    void Update(Camera& camera, Renderer renderer)
-    {
-        glm::vec3 pos = camera.position +camera.Right * 0.15f + camera.Up * -0.15f + camera.Front * 0.25f;
-        glm::mat4 rot(1.0f);
-        rot[0] = glm::vec4(camera.Front, 0.0f);
-        rot[1] = glm::vec4(camera.Up, 0.0f);
-        rot[2] = glm::vec4(camera.Right, 0.0f);
-
-        weaponObject.orientation.modelMatrix = glm::translate(glm::mat4(1.0f), pos) * rot;
-
-        weaponObject.model.updateAnimation(deltaTime, false);
-        weaponObject.model.updateNodeTransforms();
-        weaponObject.orientation.changeView(camera.GetViewMatrix());
-        renderer.drawModel(weaponObject.model, weaponObject.orientation);
-    }
-
-    void fire()
-    {
-        weaponObject.model.setAnimation(0, true);
-    }
-};
 
 void errorCallback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
 }
 
-void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon);
+void processKeyboard(GLFWwindow* window, Player& player, WeaponManager& weaponManager);
+void processMouse(GLFWwindow* window, UIManager& uiManager, WeaponManager& weaponManager, std::vector<Projectile>& projectiles);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
@@ -80,8 +77,9 @@ int main(int argc, char* argv[]){
         return -1;
     }
     glfwSetCursorPosCallback(window, mouseCallback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     Renderer renderer(window);
+    TextRenderer textRenderer("C:/Windows/Fonts/arial.ttf");
 
     //soundEngine sEngine;
     //sEngine.initialize();
@@ -161,6 +159,18 @@ int main(int argc, char* argv[]){
         renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
     }
 
+    tinyModel swordgltf = tinyModel("..\\models\\debug_sword\\scene.gltf");
+    swordgltf.materialOffset = renderer.materials.size();
+    for (GLTFMaterialGPU mat : swordgltf.gpuMaterials) {
+        renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
+    }
+
+    tinyModel meele_enemygltf = tinyModel("..\\models\\simple_meele_enemy\\scene.gltf");
+    meele_enemygltf.materialOffset = renderer.materials.size();
+    for (GLTFMaterialGPU mat : meele_enemygltf.gpuMaterials) {
+        renderer.materials.push_back(renderer.ConvertGLTFMaterialToMaterial(mat, &shaders["gltfModel"]));
+    }
+
     DirLight basicLight;
 
     Mesh cube(cubeVertices, cubeIndices);
@@ -179,6 +189,8 @@ int main(int argc, char* argv[]){
     ModelObject mina = { minaglft, defaultObj };
     ModelObject skeleton = { skeletongltf, defaultObj };
     ModelObject gun = { gungltf, defaultObj };
+    ModelObject sword = { swordgltf, defaultObj };
+    ModelObject meeleEnemyObject = { meele_enemygltf, defaultObj };
 
     VerticeHitBox packvhb;
     packvhb.buildFromModel(pack.model.glMeshes, pack.model.nodes);
@@ -187,7 +199,6 @@ int main(int argc, char* argv[]){
     pack.orientation.movePos(glm::vec3(0.0f, -3.0f, 2.0f));
     pack.colission.updateWorldAABBV(pack.orientation.modelMatrix);
     
-
     Player player;
     MeshObject playerObject = objectCube;
     playerObject.orientation.changeSize(glm::vec3(0.5f, 1.0f, 0.5f));
@@ -201,10 +212,17 @@ int main(int argc, char* argv[]){
     mina.model.setAnimation(0);
 
     weapon gun_weapon{gun};
+    weapon sword_weapon{ sword };
+
+    WeaponManager weaponManager;
+    weaponManager.addWeapon(gun_weapon);
+    weaponManager.addWeapon(sword_weapon);
 
     Enemy basicEnemy{objectCube};
+    basicEnemy.object.orientation.movePos(glm::vec3(-3.0f, -4.0f, 2.0f));
 
-    ProjectileType basicProjectileType{ cube, 10.0f , 3.0f};
+
+    ProjectileType basicProjectileType{ cube, 10.0f , 5.0f, 10.0f};
     basicEnemy.ptype = basicProjectileType;
     basicEnemy.attackRange = 2.0f;
     basicEnemy.state = CHASE;
@@ -212,24 +230,57 @@ int main(int argc, char* argv[]){
     EnemyModel skeletonEnemy{ skeleton };
     skeletonEnemy.attackRange = 2.0f;
     skeletonEnemy.state = CHASE;
-    skeletonEnemy.attackAnimation = 0;
     skeletonEnemy.chaseAnimation = -1;
+
+    EnemyModel meeleEnemy{ meeleEnemyObject };
+    meeleEnemy.object.orientation.movePos(glm::vec3(4.0f, -4.0f, 5.0f));
+    meeleEnemy.attackRange = 0.5f;
+    meeleEnemy.state = CHASE;
+    meeleEnemy.chaseAnimation = -1;
 
     Projectile basicProjectile{ objectCube, basicProjectileType };
     basicProjectile.object.orientation.changeSize(glm::vec3(-0.9f));
     basicProjectile.object.colission.updateWorldAABB(basicProjectile.object.orientation.modelMatrix);
 
+    Attack skeletonAttack{ skeletonEnemy.object, skeletonEnemy.id };
+    skeletonAttack.type = AttackType::Projectile;
+    skeletonAttack.animationIndex = 0;
+    skeletonAttack.projectile = basicProjectile;
+    skeletonEnemy.attack = skeletonAttack;
+
+    Attack meleeEnemyAttack{ meeleEnemy.object, meeleEnemy.id };
+    meleeEnemyAttack.type = AttackType::Meele;
+    meleeEnemyAttack.damage = 20.0f;
+    meleeEnemyAttack.animationIndex = 0;
+    meleeEnemyAttack.meele = MeeleAttack{ meeleEnemy.object, meleeEnemyAttack.ownerId };
+    meeleEnemy.attack = meleeEnemyAttack;
+
+    Attack gunWeaponAttack = Attack{ gun_weapon.weaponObject, gun_weapon.ownerId };
+    gunWeaponAttack.projectile = basicProjectile;
+    gunWeaponAttack.type = AttackType::Projectile;
+    gunWeaponAttack.animationIndex = 0;
+    gun_weapon.attack = gunWeaponAttack;
+
+    Attack meeleWeaponAttack = Attack{ sword_weapon.weaponObject, sword_weapon.ownerId };
+    meeleWeaponAttack.damage = 20.0f;
+    meeleWeaponAttack.type = AttackType::Meele;
+    meeleWeaponAttack.animationIndex = 0;
+    meeleWeaponAttack.meele = MeeleAttack{ sword_weapon.weaponObject , meeleWeaponAttack.ownerId};
+
     ProjectileManager projectileManager;
     projectileManager.AddProjectile(basicProjectile, 100);
 
     EnemyManager enemyManager;
-    enemyManager.AddEnemy(basicEnemy);
-    enemyManager.AddEnemy(skeletonEnemy);
+    //enemyManager.AddEnemy(basicEnemy);
+    enemyManager.AddEnemy(meeleEnemy);
+    //enemyManager.AddEnemy(skeletonEnemy);
 
     mina.orientation.movePos(glm::vec3(3.0f, -4.9f, 2.0f));
     mina.orientation.rotate(glm::vec3(90.0f, 3.5f, 2.0f));
 
     ColissionManager colMgr;
+
+    CombatManager cmbMgr;
 
     SceneManager sceneManager;
     sceneManager.Add(floor);
@@ -245,6 +296,37 @@ int main(int argc, char* argv[]){
     floor.orientation.movePos(glm::vec3(-1.0f, -5.0f, -1.0f));
     floor.colission.updateWorldAABBV(floor.orientation.modelMatrix);
 
+    UIManager uiManager;
+
+    std::function<void()> showMainMenu, showPause;
+
+    showMainMenu = [&]() {
+        game = Game::START_SCREEN;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        uiManager.SetScreen(new MainMenuScreen(
+            [&]() { game = Game::GAME_SCREEN; glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); },
+            [&]() { uiManager.SetScreen(new OptionsScreen([&]() { showMainMenu(); })); },
+            [&]() { glfwSetWindowShouldClose(window, true); }
+        ));
+    };
+
+    showPause = [&]() {
+        game = Game::PAUSE_SCREEN;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        uiManager.SetScreen(new PauseScreen(
+            [&]() { game = Game::GAME_SCREEN; glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); },
+            [&]() { uiManager.SetScreen(new OptionsScreen([&]() { showPause(); })); },
+            [&]() { showMainMenu(); }
+        ));
+    };
+
+    showMainMenu();
+
+    GameState gameState;
+    gameState.Store(player, enemyManager);
+
+    float deathTimer = 5.0f;
+
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -252,33 +334,68 @@ int main(int argc, char* argv[]){
         lastFrame = currentFrame;
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        processKeyboard(window, player, gun_weapon);
+
+        processMouse(window, uiManager, weaponManager, projectileManager.projectiles);
+        processKeyboard(window, player, weaponManager);
         player.grounded = false;
-   
-        glm::vec3 originalMovement = player.movement;
 
-        gun_weapon.Update(camera, renderer);
+        switch (game) {
+        case Game::GAME_SCREEN: {
+            bool escDown = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
+            if (escDown && !escapePressed) showPause();
+            escapePressed = escDown;
 
-        sceneManager.Update(deltaTime);
+            glm::vec3 originalMovement = player.movement;
 
-        colMgr.CheckSceneCollision(player, sceneManager, camera.position);
-        colMgr.CheckEnemyCollision(player, enemyManager, camera.position);
-        colMgr.CheckProjectileCollision(player, projectileManager);
+            sceneManager.Update(deltaTime);
 
-        sceneManager.Render(renderer, silver, camera);
+            enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
+            projectileManager.Update(deltaTime);
 
-        
+            weaponManager.Update(camera, renderer, colMgr, enemyManager, deltaTime);
 
-        enemyManager.Update(deltaTime, player.object.orientation.position, projectileManager);
-        enemyManager.Render(renderer, silver, camera);
+            colMgr.CheckSceneCollision(player, sceneManager, camera.position);
+            colMgr.CheckEnemyCollision(player, enemyManager, camera.position);
+            cmbMgr.CollectActiveAttacks(weaponManager, enemyManager);
+            cmbMgr.CheckMeeleSweeps(enemyManager, player);
+            cmbMgr.CheckProjectileCollision(player, projectileManager);
+            cmbMgr.CheckProjectileEnemyCollision(projectileManager, enemyManager);
 
-        projectileManager.Update(deltaTime);
-        projectileManager.Render(renderer, silver, camera);
+            if (player.health <= 0.0f) {
+                deathTimer = 5.0f;
+                game = Game::DEATH_SCREEN;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                gameState.Restore(player, enemyManager);
+            }
 
-        updatePlayer(player, originalMovement, deltaTime);
-        camera.position = player.object.orientation.position + glm::vec3(0, player.cameraHeight, 0);
+            sceneManager.Render(renderer, silver, camera);
+
+            enemyManager.Render(renderer, silver, camera);
+
+            projectileManager.Render(renderer, silver, camera);
+
+            updatePlayer(player, originalMovement, deltaTime);
+            camera.position = player.object.orientation.position + glm::vec3(0, player.cameraHeight, 0);
+
+            textRenderer.RenderText("HP: " + std::to_string(player.health), 20.0f, 60.0f, 1.0f, glm::vec3(1.0f, 0.2f, 0.2f));
+            break;
+        }
+
+        case Game::START_SCREEN:
+        case Game::PAUSE_SCREEN:
+            uiManager.Update(deltaTime);
+            uiManager.Render(textRenderer);
+            break;
+
+        case Game::DEATH_SCREEN:
+            if (deathTimer <= 0) showMainMenu();
+            textRenderer.RenderText("YOU DIED PUSSY", 400.0f, 400.0f, 1.5f, glm::vec3(0.0f, 1.0f, 0.0f));
+            deathTimer -= deltaTime;
+            break;
+        }
+
         glfwPollEvents();
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(window);         
     }
     //sEngine.audioCleanup(huh, aDevice);
     glfwTerminate();
@@ -290,23 +407,48 @@ void mouseCallback(GLFWwindow* window, double xposIn, double yposIn)
 {
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
-    if (firstMouse)
+    mouseX = xpos;
+    mouseY = ypos;
+    if (game == Game::GAME_SCREEN)
     {
+        if (firstMouse)
+        {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos;
         lastX = xpos;
         lastY = ypos;
-        firstMouse = false;
+        camera.ProcessMouseMovement(xoffset, yoffset);
     }
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
-    lastX = xpos;
-    lastY = ypos;
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    else
+    {
+        firstMouse = true;
+    }
 }
 
-void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, true);
+void processMouse(GLFWwindow* window, UIManager& uiManager, WeaponManager& weaponManager, std::vector<Projectile>& projectiles) {
+    bool leftClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+    if (leftClick && !leftMousePressed) {
+        uiManager.OnMouseClick(mouseX, mouseY);
     }
+    leftMousePressed = leftClick;
+    uiManager.OnMouseMove(mouseX, mouseY);
+    weapon* w = weaponManager.getActiveWeapon();
+    if (w && game == Game::GAME_SCREEN && leftClick) {
+        w->fire(projectiles);
+    }
+    //bool rightClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+    //if (rightClick && !rightMousePressed && game == Game::GAME_SCREEN) {
+    //    if (w && (w->type == weapon::WeaponType::Meele || w->type == weapon::WeaponType::Both))
+    //        w->meeleAttack.startMeele(w->weaponObject);
+    //}
+    //rightMousePressed = rightClick;
+}
+
+void processKeyboard(GLFWwindow* window, Player& player, WeaponManager& weaponManager) {
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         ProcessViewControls(player, FORWARD, camera, deltaTime);
     }
@@ -325,9 +467,13 @@ void processKeyboard(GLFWwindow* window, Player& player, weapon& gun_weapon) {
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
         ProcessViewControls(player, DOWN, camera, deltaTime);
     }
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-    {
-        gun_weapon.fire();
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+        weaponManager.setActiveWeapon(0);
+    }
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+        weaponManager.setActiveWeapon(1);
+    }
+    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+        weaponManager.setActiveWeapon(2);
     }
 }
-

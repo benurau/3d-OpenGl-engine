@@ -24,18 +24,27 @@ public:
     {
         for (Enemy& e : enemies)
         {
+            if (e.health <= 0) { continue; }
             UpdateEnemy(e, playerPos, dt, projectileManager.projectiles);
+
+            e.object.colission.updateWorldAABBV(e.object.orientation.modelMatrix);
         }
 
         for (EnemyModel& e : modelEnemies)
         {
+            if (e.health < 0) { continue; }
             UpdateEnemy(e, playerPos, dt, projectileManager.projectiles);
+
+            e.attack.Update(dt, e.object);
 
             e.object.model.updateAnimation(dt);
             e.object.model.updateNodeTransforms();
             e.object.model.updateSkins();
 
-            e.object.colission.updateModelAABBskins(e.object.model);
+            if (!e.object.model.skins.empty())
+                e.object.colission.updateModelAABBskins(e.object.model);
+            else
+                e.object.colission.updateModelAABBnodes(e.object.model);
             e.object.colission.updateWorldAABB(e.object.orientation.modelMatrix);
             e.object.colission.updateCapsuleLocs(e.object.model, e.object.orientation);
         }
@@ -45,12 +54,14 @@ public:
     {
         for (Enemy& e : enemies)
         {
+            if (e.health <= 0) { continue; }
             e.object.orientation.changeView(camera.GetViewMatrix());
             renderer.draw(e.object.mesh, e.object.orientation, material);
         }
 
         for (EnemyModel& e : modelEnemies)
         {
+            if (e.health <= 0) { continue; }
             e.object.orientation.changeView(camera.GetViewMatrix());
             renderer.drawModel(e.object.model, e.object.orientation);
         }

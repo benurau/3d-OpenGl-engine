@@ -55,6 +55,9 @@
     <Filter Include="Header Files\InteractionhFiles\colissionFiles">
       <UniqueIdentifier>{f28417ce-7c9f-4368-8977-89c42f110ea8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\UIhFiles">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\glad.c">
@@ -79,6 +82,9 @@
       <Filter>Source Files\RenderercppFiles</Filter>
     </ClCompile>
     <ClCompile Include="window.cpp">
+      <Filter>Source Files\RenderercppFiles</Filter>
+    </ClCompile>
+    <ClCompile Include="TextRenderer.cpp">
       <Filter>Source Files\RenderercppFiles</Filter>
     </ClCompile>
     <ClCompile Include="openglHelpers.cpp">
@@ -131,9 +137,6 @@
     <ClInclude Include="Geometry3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="tinyModel.h">
-      <Filter>Header Files\InteractionhFiles\ObjecthFiles</Filter>
-    </ClInclude>
     <ClInclude Include="objects.h">
       <Filter>Header Files\InteractionhFiles\ObjecthFiles</Filter>
     </ClInclude>
@@ -168,6 +171,54 @@
       <Filter>Header Files\InteractionhFiles\colissionFiles</Filter>
     </ClInclude>
     <ClInclude Include="ColisionManager.h">
+      <Filter>Header Files\InteractionhFiles\managerFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="GameState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Weapon.h">
+      <Filter>Header Files\InteractionhFiles\gameFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="TextRenderer.h">
+      <Filter>Header Files\RendererhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="tinyModel.h">
+      <Filter>Header Files\InteractionhFiles\ObjecthFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="UIElement.h">
+      <Filter>Header Files\UIhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="TextLabel.h">
+      <Filter>Header Files\UIhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Button.h">
+      <Filter>Header Files\UIhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="UIScreen.h">
+      <Filter>Header Files\UIhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="MainMenuScreen.h">
+      <Filter>Header Files\UIhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="OptionsScreen.h">
+      <Filter>Header Files\UIhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="PauseScreen.h">
+      <Filter>Header Files\UIhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="UIManager.h">
+      <Filter>Header Files\UIhFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="WeaponManager.h">
+      <Filter>Header Files\InteractionhFiles\managerFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="meele.h">
+      <Filter>Header Files\InteractionhFiles\gameFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="Attack.h">
+      <Filter>Header Files\InteractionhFiles\gameFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatManager.h">
       <Filter>Header Files\InteractionhFiles\managerFiles</Filter>
     </ClInclude>
   </ItemGroup>
@@ -234,6 +285,18 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="..\shaders\debugShader.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\text.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\text.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\ui.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\ui.vs">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
