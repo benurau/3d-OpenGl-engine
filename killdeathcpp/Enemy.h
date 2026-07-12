@@ -72,6 +72,8 @@ void UpdateEnemy(Enemy& e, glm::vec3 targetPosition, float dt, std::vector<Proje
         if (dist < e.attackRange)
             e.state = ATTACK;
         else {
+            float desiredYaw = CalculateYawToTarget(e.object.orientation.position, targetPosition);
+            e.object.orientation.rotate(glm::vec3(0.0f, desiredYaw - e.object.orientation.rotation.y, 0.0f));
             e.object.orientation.movePos(dir * e.moveSpeed * dt);
         }
         break;
@@ -122,6 +124,14 @@ void UpdateEnemy(EnemyModel& e, glm::vec3 targetPosition, float dt, std::vector<
         else {
             float desiredYaw = CalculateYawToTarget(e.object.orientation.position, targetPosition);
             e.object.orientation.rotate(glm::vec3(0.0f, desiredYaw - e.object.orientation.rotation.y, 0.0f));
+
+            if (e.attack.type == AttackType::Meele) {
+                float meleeReach = e.attack.meele.localMeshTip.length() + e.attack.meele.meeleRadius;
+                if (dist > meleeReach) {
+                    e.object.orientation.movePos(dir * e.moveSpeed * dt);
+                }
+            }
+
             e.attack.Update(dt, e.object);
             if (e.attack.timer <= 0.0f)
             {

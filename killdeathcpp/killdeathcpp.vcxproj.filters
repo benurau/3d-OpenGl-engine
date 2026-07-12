@@ -72,12 +72,7 @@
     <ClCompile Include="Material.cpp">
       <Filter>Source Files\ShadercppFiles</Filter>
     </ClCompile>
-    <ClCompile Include="soundEngine.cpp">
-      <Filter>Source Files\SoundEnginecppFiles</Filter>
-    </ClCompile>
-    <ClCompile Include="Wav.cpp">
-      <Filter>Source Files\SoundEnginecppFiles</Filter>
-    </ClCompile>
+
     <ClCompile Include="Renderer.cpp">
       <Filter>Source Files\RenderercppFiles</Filter>
     </ClCompile>
@@ -119,12 +114,7 @@
     <ClInclude Include="Material.h">
       <Filter>Header Files\ShaderhFiles</Filter>
     </ClInclude>
-    <ClInclude Include="soundEngine.h">
-      <Filter>Header Files\SoundEnginehFiles</Filter>
-    </ClInclude>
-    <ClInclude Include="Wav.h">
-      <Filter>Header Files\SoundEnginehFiles</Filter>
-    </ClInclude>
+
     <ClInclude Include="Renderer.h">
       <Filter>Header Files\RendererhFiles</Filter>
     </ClInclude>

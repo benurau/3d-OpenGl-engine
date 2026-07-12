@@ -28,14 +28,13 @@
     <ClCompile Include="ObjectOrientation.cpp" />
     <ClCompile Include="openglHelpers.cpp" />
     <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="soundEngine.cpp" />
     <ClCompile Include="thirdparty_impl.cpp" />
-    <ClCompile Include="Wav.cpp" />
     <ClCompile Include="window.cpp" />
     <ClCompile Include="TextRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Attack.h" />
+    <ClInclude Include="AudioEngine.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ColisionManager.h" />
     <ClInclude Include="CollisionResponse.h" />
@@ -60,10 +59,8 @@
     <ClInclude Include="misc.h" />
     <ClInclude Include="SceneManager.h" />
     <ClInclude Include="shader.h" />
-    <ClInclude Include="soundEngine.h" />
     <ClInclude Include="ObjectParams.h" />
     <ClInclude Include="tinyModel.h" />
-    <ClInclude Include="Wav.h" />
     <ClInclude Include="Weapon.h" />
     <ClInclude Include="TextRenderer.h" />
     <ClInclude Include="UIElement.h" />

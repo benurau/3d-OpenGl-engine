@@ -1,7 +1,6 @@
 #include <iostream>
 #include <functional>
 #include "renderer.h"
-#include "soundEngine.h"
 #include "Camera.h"
 #include "ObjectParams.h"
 #include "Colissions.h"
@@ -80,11 +79,6 @@ int main(int argc, char* argv[]){
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     Renderer renderer(window);
     TextRenderer textRenderer("C:/Windows/Fonts/arial.ttf");
-
-    //soundEngine sEngine;
-    //sEngine.initialize();
-    //WAV huh = sEngine.loadWavFile("..\\assets\\ahem_x.wav", "ahem");
-    //SDL_AudioDeviceID aDevice = sEngine.openAudioDevice(huh);
 
     std::vector<Vertex> cubeVertices;
     cubeVertices.reserve(cubePos.size());
@@ -234,7 +228,7 @@ int main(int argc, char* argv[]){
 
     EnemyModel meeleEnemy{ meeleEnemyObject };
     meeleEnemy.object.orientation.movePos(glm::vec3(4.0f, -4.0f, 5.0f));
-    meeleEnemy.attackRange = 0.5f;
+    meeleEnemy.attackRange = 2.0f;
     meeleEnemy.state = CHASE;
     meeleEnemy.chaseAnimation = -1;
 
@@ -271,7 +265,7 @@ int main(int argc, char* argv[]){
     projectileManager.AddProjectile(basicProjectile, 100);
 
     EnemyManager enemyManager;
-    //enemyManager.AddEnemy(basicEnemy);
+    enemyManager.AddEnemy(basicEnemy);
     enemyManager.AddEnemy(meeleEnemy);
     //enemyManager.AddEnemy(skeletonEnemy);
 
@@ -397,7 +391,6 @@ int main(int argc, char* argv[]){
         glfwPollEvents();
         glfwSwapBuffers(window);         
     }
-    //sEngine.audioCleanup(huh, aDevice);
     glfwTerminate();
 
     return 0;
