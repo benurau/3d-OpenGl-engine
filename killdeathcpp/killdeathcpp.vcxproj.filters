@@ -72,7 +72,6 @@
     <ClCompile Include="Material.cpp">
       <Filter>Source Files\ShadercppFiles</Filter>
     </ClCompile>
-
     <ClCompile Include="Renderer.cpp">
       <Filter>Source Files\RenderercppFiles</Filter>
     </ClCompile>
@@ -114,7 +113,6 @@
     <ClInclude Include="Material.h">
       <Filter>Header Files\ShaderhFiles</Filter>
     </ClInclude>
-
     <ClInclude Include="Renderer.h">
       <Filter>Header Files\RendererhFiles</Filter>
     </ClInclude>
@@ -210,6 +208,12 @@
     </ClInclude>
     <ClInclude Include="CombatManager.h">
       <Filter>Header Files\InteractionhFiles\managerFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EnemyAi.h">
+      <Filter>Header Files\InteractionhFiles\gameFiles</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

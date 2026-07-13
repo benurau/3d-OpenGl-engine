@@ -1,5 +1,6 @@
 #pragma once
 #include "Enemy.h"
+#include "EnemyAi.h"
 #include "ProjectileManager.h"
 #include "Renderer.h"
 #include "Camera.h"

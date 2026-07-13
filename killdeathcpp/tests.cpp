@@ -10,6 +10,7 @@
 #include "Colissions.h"
 #include "CollisionResponse.h"
 #include "Enemy.h"
+#include "EnemyAi.h"
 #include "Projectile.h"
 #include "meele.h"
 
