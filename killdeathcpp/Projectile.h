@@ -19,7 +19,10 @@ struct Projectile
 };
 
 void SpawnProjectile(glm::vec3& position, glm::vec3& direction, ProjectileType& type, std::vector<Projectile>& projectiles, int ownerId = -1) {
-    if (projectiles.empty()) printf("projectiles list empty in attack spawnprojectile function undfefined behaviour!!");
+    if (projectiles.empty()) {
+        printf("[SpawnProjectile] WARNING: projectiles list is empty, cannot spawn!\n");
+        return;
+    }
     for (Projectile& p : projectiles)
     {
         if (!p.active)
@@ -31,9 +34,10 @@ void SpawnProjectile(glm::vec3& position, glm::vec3& direction, ProjectileType& 
             p.type.lifetime = type.lifetime;
             p.active = true;
             p.ownerId = ownerId;
-            break;
+            return;
         }
     }
+    printf("[SpawnProjectile] WARNING: projectile pool exhausted (%d active), shot dropped!\n", (int)projectiles.size());
 }
 
 void UpdateProjectile(Projectile& p, float& dt)

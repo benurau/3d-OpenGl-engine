@@ -21,6 +21,12 @@ public:
         InitQuad();
     }
 
+    ~Button() {
+        if (vao) glDeleteVertexArrays(1, &vao);
+        if (vbo) glDeleteBuffers(1, &vbo);
+        if (ebo) glDeleteBuffers(1, &ebo);
+    }
+
     void Render(TextRenderer& textRenderer) override {
         
         glBindVertexArray(vao);
@@ -80,6 +86,5 @@ private:
     glm::vec3 textColor;
     float textScale;
 
-    Shader shader;
     GLuint vao, vbo, ebo;
 };

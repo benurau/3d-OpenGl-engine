@@ -1,6 +1,8 @@
 #pragma once
 
 #include "miniaudio.h"
+#include <vector>
+#include <algorithm>
 
 #ifdef _WIN32
 #pragma comment(lib, "ole32.lib")
@@ -17,6 +19,7 @@ struct AudioEngine {
     ma_engine engine;
     ma_sound_group groups[AUDIO_GROUP_COUNT];
     bool initialized = false;
+    std::vector<ma_sound*> activeSounds;
 
     bool init()
     {
@@ -97,6 +100,7 @@ struct AudioEngine {
         }
 
         ma_sound_start(sound);
+        activeSounds.push_back(sound);
         return sound;
     }
 
@@ -123,6 +127,7 @@ struct AudioEngine {
 
         ma_sound_set_looping(music, MA_FALSE);
         ma_sound_start(music);
+        activeSounds.push_back(music);
         return music;
     }
 
@@ -132,11 +137,22 @@ struct AudioEngine {
         ma_sound_stop(sound);
         ma_sound_uninit(sound);
         delete sound;
+        activeSounds.erase(
+            std::remove(activeSounds.begin(), activeSounds.end(), sound),
+            activeSounds.end());
     }
 
     void stopAllSounds()
     {
         if (!initialized) return;
+        for (ma_sound* s : activeSounds) {
+            if (s) {
+                ma_sound_stop(s);
+                ma_sound_uninit(s);
+                delete s;
+            }
+        }
+        activeSounds.clear();
         for (int i = 0; i < AUDIO_GROUP_COUNT; i++)
             ma_sound_group_stop(&groups[i]);
     }

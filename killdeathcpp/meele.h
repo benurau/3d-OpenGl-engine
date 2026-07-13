@@ -28,8 +28,8 @@ struct MeeleAttack {
 
 
     MeeleAttack() : ownerId(-1) {}
-    MeeleAttack(ModelObject& attackObject, int id) {
-        findTip(attackObject), ownerId= id;
+    MeeleAttack(ModelObject& attackObject, int id) : ownerId(id) {
+        findTip(attackObject);
     }
 
     void findTip(ModelObject& attackObject) {

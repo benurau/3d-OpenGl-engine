@@ -41,7 +41,7 @@ public:
 
     Camera(glm::vec3 position = glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
     {
-        position = position;
+        this->position = position;
         WorldUp = up;
         Yaw = yaw;
         Pitch = pitch;

@@ -4,6 +4,8 @@
 
 
 
+// SUGGESTION (#25): Change SetScreen parameter to std::unique_ptr<UIScreen> to make
+// ownership transfer explicit. Current raw-pointer API is error-prone for stack/static objects.
 class UIManager {
 public:
     void SetScreen(UIScreen* screen) {

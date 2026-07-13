@@ -8,8 +8,9 @@ Material::Material(Shader* shader) {
 
 void Material::bindTextures() const
 {
+    if (!shader) return;
     int i = 0;
-    GLint program = shader ? shader->ID : 0;
+    GLint program = shader->ID;
 
     for (const auto& pair : textureUniforms) {
         const std::string& uniformName = pair.first;
@@ -28,6 +29,7 @@ void Material::bindTextures() const
 
 
 void Material::apply() {
+    if (!shader) return;
     shader->use();
     for (const auto& [name, value] : floatUniforms) {
         shader->setFloat(name, value);

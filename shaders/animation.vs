@@ -14,11 +14,9 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-// Maximum number of bones supported
 const int MAX_BONES = 200;
-const MAX_BONE_INFLUENCE = 4;
+const int MAX_BONE_INFLUENCE = 4;
 
-// Bone transformation matrices
 uniform mat4 finalBonesMatrices[MAX_BONES];
 
 void main()
@@ -26,20 +24,19 @@ void main()
     vec4 totalPosition = vec4(0.0f);
     for(int i = 0 ; i < MAX_BONE_INFLUENCE ; i++)
     {
-        if(aBoneIDs[i] == -1) 
+        if(aBoneIDs[i] == -1)
             continue;
-        if(aBoneIDs[i] >=MAX_BONES) 
+        if(aBoneIDs[i] >= MAX_BONES)
         {
-            totalPosition = vec4(pos,1.0f);
+            totalPosition = vec4(aPos, 1.0f);
             break;
         }
-        vec4 localPosition = finalBonesMatrices[aBoneIDs[i]] * vec4(pos,1.0f);
+        vec4 localPosition = finalBonesMatrices[aBoneIDs[i]] * vec4(aPos, 1.0f);
         totalPosition += localPosition * aWeights[i];
-        vec3 localNormal = mat3(finalBonesMatrices[aBoneIDs[i]]) * aNormal;
-   }
-	
+    }
+
     mat4 viewModel = view * model;
-    gl_Position =  projection * viewModel * totalPosition;
-	TexCoords = aTexCoords;
+    gl_Position = projection * viewModel * totalPosition;
+    TexCoords = aTexCoords;
 }
 

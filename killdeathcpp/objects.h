@@ -11,6 +11,9 @@ struct MeshObject {
 };
 
 
+// WARNING (#17): tinyModel is stored by value here. Copying a ModelObject copies the entire
+// glTF scene (meshes, animations, skins, GPU materials). Consider using std::shared_ptr<tinyModel>
+// or std::unique_ptr<tinyModel> if copies become a problem. At minimum, avoid accidental copies.
 struct ModelObject {
     tinyModel model;
     ObjectOrientation orientation;

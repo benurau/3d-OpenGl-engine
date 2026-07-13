@@ -47,7 +47,7 @@ public:
     std::vector<Node> nodes;
     std::vector<Skin> skins;
     std::vector<ModelHitbox> hitboxes;
-    int materialOffset;
+    int materialOffset = 0;
 
     tinyModel(const std::string& path) {
         load_model(path);
@@ -365,6 +365,10 @@ private:
                     channel.path = AnimationChannel::Path::Rotation;
                 else if (srcChannel.target_path == "scale")
                     channel.path = AnimationChannel::Path::Scale;
+                else {
+                    printf("[tinyModel] WARNING: unknown animation channel path '%s', skipping\n", srcChannel.target_path.c_str());
+                    continue;
+                }
 
                 anim.channels.push_back(channel);
             }
