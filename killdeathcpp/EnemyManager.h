@@ -35,10 +35,13 @@ public:
             if (e.health < 0) { continue; }
             UpdateEnemy(e, playerPos, dt, projectileManager.projectiles);
 
-            e.attack.Update(dt, e.object);
-
             e.object.model.updateAnimation(dt);
             e.object.model.updateNodeTransforms();
+
+            e.attack.meele.recomputeTip(e.object);
+
+            e.attack.Update(dt, e.object);
+
             e.object.model.updateSkins();
 
             if (!e.object.model.skins.empty())

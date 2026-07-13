@@ -16,6 +16,9 @@ struct MeeleAttack {
     glm::vec3 prevWorldTip{ 0.0f };
     bool hasPrevTip = false;
 
+    int tipNodeIndex = -1;
+    int tipVertexIndex = -1;
+
     CapsuleWorldLoc capsule;
     CapsuleWorldLoc hiltCapsule;
 
@@ -32,18 +35,42 @@ struct MeeleAttack {
     void findTip(ModelObject& attackObject) {
         tinyModel& model = attackObject.model;
         float maxDist = 0.0f;
-        for (Node& node : model.nodes) {
-            if (node.glMeshIndex < 0) continue;
+        tipNodeIndex = -1;
+        tipVertexIndex = -1;
+        printf("[MeeleAttack] findTip: scanning %d nodes\n", (int)model.nodes.size());
+        for (int ni = 0; ni < (int)model.nodes.size(); ni++) {
+            Node& node = model.nodes[ni];
+            if (node.glMeshIndex < 0) {
+                printf("  node[%d]  glMeshIndex=%d (skipped)\n", ni, node.glMeshIndex);
+                continue;
+            }
             Mesh& mesh = model.glMeshes[node.glMeshIndex];
-            for (Vertex& v : mesh.vertices) {
+            printf("  node[%d]  glMeshIndex=%d meshVerts=%d\n", ni , node.glMeshIndex, (int)mesh.vertices.size());
+            for (int vi = 0; vi < (int)mesh.vertices.size(); vi++) {
+                Vertex& v = mesh.vertices[vi];
                 glm::vec3 p = glm::vec3(node.globalMatrix * glm::vec4(v.position, 1.0f));
                 float dist = glm::length(p);
                 if (dist > maxDist) {
                     maxDist = dist;
                     localMeshTip = p;
+                    tipNodeIndex = ni;
+                    tipVertexIndex = vi;
                 }
             }
         }
+        printf("[MeeleAttack] findTip: tip=(%.3f, %.3f, %.3f) dist=%.3f node=%d vertex=%d\n",
+            localMeshTip.x, localMeshTip.y, localMeshTip.z, maxDist, tipNodeIndex, tipVertexIndex);
+    }
+
+    void recomputeTip(ModelObject& attackObject) {
+        if (tipNodeIndex < 0 || tipVertexIndex < 0) return;
+        Node& node = attackObject.model.nodes[tipNodeIndex];
+        if (node.glMeshIndex < 0) return;
+        Mesh& mesh = attackObject.model.glMeshes[node.glMeshIndex];
+        Vertex& v = mesh.vertices[tipVertexIndex];
+        localMeshTip = glm::vec3(node.globalMatrix * glm::vec4(v.position, 1.0f));
+        printf("[MeeleAttack] recomputeTip: node=%d vertex=%d tip=(%.3f, %.3f, %.3f) dist=%.3f\n",
+            tipNodeIndex, tipVertexIndex, localMeshTip.x, localMeshTip.y, localMeshTip.z, glm::length(localMeshTip));
     }
 
     glm::vec3 getCurrentTipWorld(ModelObject& attackObject)

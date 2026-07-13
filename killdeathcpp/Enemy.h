@@ -122,14 +122,22 @@ void UpdateEnemy(EnemyModel& e, glm::vec3 targetPosition, float dt, std::vector<
             e.state = CHASE;
         }
         else {
-            float desiredYaw = CalculateYawToTarget(e.object.orientation.position, targetPosition);
-            e.object.orientation.rotate(glm::vec3(0.0f, desiredYaw - e.object.orientation.rotation.y, 0.0f));
-
             if (e.attack.type == AttackType::Meele) {
+                float tipAngle = glm::degrees(atan2(e.attack.meele.localMeshTip.x, e.attack.meele.localMeshTip.z));
+                float desiredYaw = CalculateYawToTarget(e.object.orientation.position, targetPosition) - tipAngle;
+                e.object.orientation.rotate(glm::vec3(0.0f, desiredYaw - e.object.orientation.rotation.y, 0.0f));
+
                 float meleeReach = e.attack.meele.localMeshTip.length() + e.attack.meele.meeleRadius;
+                printf("[EnemyModel] ATTACK melee: dist=%.3f meleeReach=%.3f tipLen=%.3f radius=%.3f pos=(%.2f,%.2f,%.2f) target=(%.2f,%.2f,%.2f)\n",
+                    dist, meleeReach, e.attack.meele.localMeshTip.length(), e.attack.meele.meeleRadius,
+                    e.object.orientation.position.x, e.object.orientation.position.y, e.object.orientation.position.z,
+                    targetPosition.x, targetPosition.y, targetPosition.z);
                 if (dist > meleeReach) {
                     e.object.orientation.movePos(dir * e.moveSpeed * dt);
                 }
+            } else {
+                float desiredYaw = CalculateYawToTarget(e.object.orientation.position, targetPosition);
+                e.object.orientation.rotate(glm::vec3(0.0f, desiredYaw - e.object.orientation.rotation.y, 0.0f));
             }
 
             e.attack.Update(dt, e.object);

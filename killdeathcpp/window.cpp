@@ -41,7 +41,7 @@ float mouseX = 0.0f, mouseY = 0.0f;
 bool leftMousePressed = false;
 bool rightMousePressed = false;
 bool escapePressed = false;
-Game game = Game::START_SCREEN;
+Game game = Game::GAME_SCREEN;
 Camera camera;
 
 void errorCallback(int error, const char* description) {
@@ -314,7 +314,8 @@ int main(int argc, char* argv[]){
         ));
     };
 
-    showMainMenu();
+    //showMainMenu();
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     GameState gameState;
     gameState.Store(player, enemyManager);
