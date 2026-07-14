@@ -21,6 +21,7 @@ inline void ChasePlayer(EnemyModel& e, glm::vec3 targetPosition, float dt) {
     float dist = glm::length(targetPosition - e.object.orientation.position);
     if (dist < e.attackRange) {
         e.state = ATTACK;
+        e.object.model.setAnimation(e.attackAnimation, true);
     }
     else {
         e.object.model.setAnimation(e.chaseAnimation);
@@ -49,6 +50,7 @@ inline void AttackPlayer(EnemyModel& e, glm::vec3 targetPosition, float dt, std:
 
     if (dist > e.attackRange) {
         e.state = CHASE;
+        e.object.model.setAnimation(e.chaseAnimation);
     }
     else {
         if (e.attack.type == AttackType::Meele) {

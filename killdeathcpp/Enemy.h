@@ -50,7 +50,9 @@ struct EnemyModel {
     float attackRange;
     float attackLength;
 
-    int chaseAnimation;
+    int chaseAnimation = -1;
+    int attackAnimation = -1;
+    int idleAnimation = -1;
 
     EnemyState state;
     float stateTimer;

@@ -224,13 +224,15 @@ int main(int argc, char* argv[]){
     EnemyModel skeletonEnemy{ skeleton };
     skeletonEnemy.attackRange = 2.0f;
     skeletonEnemy.state = CHASE;
-    skeletonEnemy.chaseAnimation = -1;
+    skeletonEnemy.chaseAnimation = 0;
+    skeletonEnemy.attackAnimation = 0;
 
     EnemyModel meeleEnemy{ meeleEnemyObject };
     meeleEnemy.object.orientation.movePos(glm::vec3(4.0f, -4.0f, 5.0f));
     meeleEnemy.attackRange = 2.0f;
     meeleEnemy.state = CHASE;
-    meeleEnemy.chaseAnimation = -1;
+    meeleEnemy.chaseAnimation = 0;
+    meeleEnemy.attackAnimation = 0;
 
     Projectile basicProjectile{ objectCube, basicProjectileType };
     basicProjectile.object.orientation.changeSize(glm::vec3(-0.9f));
@@ -443,6 +445,10 @@ void processMouse(GLFWwindow* window, UIManager& uiManager, WeaponManager& weapo
 }
 
 void processKeyboard(GLFWwindow* window, Player& player, WeaponManager& weaponManager) {
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        PlayerDash(player, camera, window, deltaTime);
+    }
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         ProcessViewControls(player, FORWARD, camera, deltaTime);
     }
